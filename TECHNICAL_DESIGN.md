@@ -5,7 +5,7 @@
 ### 1.1 技术栈选择
 - **框架**：Taro 4.x（跨平台小程序开发框架）
 - **编程语言**：TypeScript + React Hooks
-- **UI 库**：NutUI for Taro（或 Taro UI）
+- **UI 库**：Taro UI
 - **状态管理**：Redux Toolkit
 - **本地存储**：微信小程序 Storage API（wx.setStorage/getStorage）
 - **构建工具**：Webpack 5（Taro 内置）
