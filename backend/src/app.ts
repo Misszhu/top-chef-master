@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import userRoutes from './routes/user.routes';
+import dishRoutes from './routes/dish.routes';
 
 dotenv.config();
 
@@ -14,6 +16,10 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Routes
+app.use('/api/users', userRoutes);
+app.use('/api/dishes', dishRoutes);
 
 // Basic route
 app.get('/', (req: Request, res: Response) => {
