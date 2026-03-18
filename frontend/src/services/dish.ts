@@ -1,34 +1,26 @@
-import axios from 'axios';
+import request from '../utils/request';
 import { Dish, DishCreateDTO, DishQueryFilters } from '../types/dish';
 
-const API_URL = 'http://localhost:3000/api/dishes'; // TODO: Get from env
-
 export const getDishes = async (filters: DishQueryFilters = {}): Promise<Dish[]> => {
-  const response = await axios.get(API_URL, { params: filters });
+  const response = await request.get('/dishes', { params: filters });
   return response.data;
 };
 
 export const getDishById = async (id: number): Promise<Dish> => {
-  const response = await axios.get(`${API_URL}/${id}`);
+  const response = await request.get(`/dishes/${id}`);
   return response.data;
 };
 
-export const createDish = async (dishData: DishCreateDTO, token: string): Promise<Dish> => {
-  const response = await axios.post(API_URL, dishData, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export const createDish = async (dishData: DishCreateDTO): Promise<Dish> => {
+  const response = await request.post('/dishes', dishData);
   return response.data;
 };
 
-export const updateDish = async (id: number, dishData: Partial<DishCreateDTO>, token: string): Promise<Dish> => {
-  const response = await axios.put(`${API_URL}/${id}`, dishData, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export const updateDish = async (id: number, dishData: Partial<DishCreateDTO>): Promise<Dish> => {
+  const response = await request.put(`/dishes/${id}`, dishData);
   return response.data;
 };
 
-export const deleteDish = async (id: number, token: string): Promise<void> => {
-  await axios.delete(`${API_URL}/${id}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  });
+export const deleteDish = async (id: number): Promise<void> => {
+  await request.delete(`/dishes/${id}`);
 };

@@ -1,0 +1,58 @@
+.profile-page {
+  min-height: 100vh;
+  background-color: #f8f8f8;
+
+  .user-header {
+    background-color: #fff;
+    padding: 60rpx 40rpx;
+    margin-bottom: 20rpx;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .user-info-section {
+      display: flex;
+      align-items: center;
+      width: 100%;
+
+      .user-text {
+        margin-left: 30rpx;
+        display: flex;
+        flex-direction: column;
+
+        .nickname {
+          font-size: 36rpx;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 10rpx;
+        }
+
+        .user-id {
+          font-size: 24rpx;
+          color: #999;
+        }
+      }
+    }
+
+    .login-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      
+      .at-button {
+        width: 400rpx;
+      }
+
+      .login-hint {
+        margin-top: 20rpx;
+        font-size: 24rpx;
+        color: #999;
+      }
+    }
+  }
+
+  .menu-section, .settings-section {
+    background-color: #fff;
+    margin-bottom: 20rpx;
+  }
+}
