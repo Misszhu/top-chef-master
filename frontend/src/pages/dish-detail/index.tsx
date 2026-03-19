@@ -19,7 +19,7 @@ export default function DishDetail() {
       if (!id) return
       dispatch(setLoading(true))
       try {
-        const data = await getDishById(parseInt(id as string))
+        const data = await getDishById(id as string)
         dispatch(setCurrentDish(data))
       } catch (err: any) {
         dispatch(setError(err.message || 'Failed to fetch dish detail'))
@@ -58,8 +58,8 @@ export default function DishDetail() {
           <View className='tags-row'>
             <AtTag size='small' circle active type='primary'>{currentDish.difficulty}</AtTag>
             <AtTag size='small' circle className='ml-2'>{currentDish.cooking_time}分钟</AtTag>
-            {currentDish.tags?.map(tag => (
-              <AtTag key={tag.id} size='small' circle className='ml-2' active>{tag.name}</AtTag>
+            {currentDish.tags?.map((tag) => (
+              <AtTag key={tag} size='small' circle className='ml-2' active>{tag}</AtTag>
             ))}
           </View>
           <Text className='dish-desc'>{currentDish.description}</Text>
@@ -72,7 +72,7 @@ export default function DishDetail() {
               <AtListItem 
                 key={index}
                 title={item.name} 
-                extraText={`${item.amount}${item.unit}`} 
+                extraText={`${item.quantity ?? ''}${item.unit ?? ''}`} 
               />
             ))}
           </AtList>

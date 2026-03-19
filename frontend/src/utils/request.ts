@@ -1,9 +1,11 @@
 import axios from 'axios';
 import Taro from '@tarojs/taro';
+import taroAdapter from 'axios-taro-adapter';
 
 const request = axios.create({
-  baseURL: 'http://localhost:3000/api', // TODO: Get from env
+  baseURL: API_BASE_URL,
   timeout: 10000,
+  adapter: taroAdapter,
 });
 
 // Request interceptor

@@ -1,16 +1,22 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import userRoutes from './routes/user.routes';
 import dishRoutes from './routes/dish.routes';
+import authRoutes from './routes/auth.routes';
+import commentRoutes from './routes/comment.routes';
+import { requestId } from './middleware/request-id.middleware';
+import { errorMiddleware } from './middleware/error.middleware';
+import { sendSuccess } from './utils/api-response';
 
 dotenv.config();
 
 const app: Application = express();
 
 // Middlewares
+app.use(requestId);
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
@@ -18,26 +24,21 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/users', userRoutes);
-app.use('/api/dishes', dishRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/dishes', dishRoutes);
+app.use('/api/v1', commentRoutes);
 
 // Basic route
 app.get('/', (req: Request, res: Response) => {
-  res.json({ message: 'Welcome to Top Chef API' });
+  return sendSuccess(res, { message: 'Welcome to Top Chef API' });
 });
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'OK' });
+  return sendSuccess(res, { status: 'OK' });
 });
 
-// Error handling middleware
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    message: 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined,
-  });
-});
+app.use(errorMiddleware);
 
 export default app;

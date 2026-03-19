@@ -38,7 +38,7 @@ export default function Index() {
     fetchDishes(searchValue)
   }
 
-  const handleCardClick = (id: number) => {
+  const handleCardClick = (id: string) => {
     Taro.navigateTo({
       url: `/pages/dish-detail/index?id=${id}`
     })

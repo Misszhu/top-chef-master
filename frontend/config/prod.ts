@@ -1,6 +1,10 @@
 import type { UserConfigExport } from "@tarojs/cli"
 
 export default {
+  defineConstants: {
+    // 生产环境请替换为实际域名/网关地址
+    API_BASE_URL: JSON.stringify('https://api.example.com/api/v1'),
+  },
   mini: {},
   h5: {
     compile: {

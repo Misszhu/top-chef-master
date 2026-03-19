@@ -1,44 +1,46 @@
 export interface Ingredient {
-  id?: number;
-  dish_id?: number;
+  id?: string;
+  dish_id?: string;
   name: string;
-  amount: string;
-  unit: string;
-  sort_order: number;
+  quantity?: number | string | null;
+  unit?: string | null;
+  note?: string | null;
+  sequence?: number | null;
 }
 
-export interface Step {
-  id?: number;
-  dish_id?: number;
+export interface CookingStep {
+  id?: string;
+  dish_id?: string;
   step_number: number;
   description: string;
   image_url?: string;
-}
-
-export interface Tag {
-  id: number;
-  name: string;
+  duration_minutes?: number | null;
 }
 
 export interface Dish {
-  id: number;
-  user_id: number;
+  id: string;
+  user_id: string;
   name: string;
   description: string | null;
   difficulty: string | null;
   cooking_time: number | null;
   image_url: string | null;
-  is_public: boolean;
+  servings?: number | null;
+  tags: string[];
+  visibility: 'private' | 'followers' | 'public';
+  comments_enabled: boolean;
   view_count: number;
+  like_count: number;
   share_count: number;
+  rating_count: number;
+  rating_avg: number | string;
+  version: number;
   created_at: string;
   updated_at: string;
   user_nickname?: string;
   user_avatar_url?: string;
   ingredients?: Ingredient[];
-  steps?: Step[];
-  tags?: Tag[];
-  average_rating?: number;
+  steps?: CookingStep[];
 }
 
 export interface DishCreateDTO {
@@ -46,19 +48,20 @@ export interface DishCreateDTO {
   description?: string;
   difficulty?: string;
   cooking_time?: number;
+  servings?: number;
   image_url?: string;
-  is_public?: boolean;
+  tags?: string[];
+  visibility?: 'private' | 'followers' | 'public';
+  comments_enabled?: boolean;
   ingredients?: Omit<Ingredient, 'id' | 'dish_id'>[];
-  steps?: Omit<Step, 'id' | 'dish_id'>[];
-  tag_ids?: number[];
+  steps?: Omit<CookingStep, 'id' | 'dish_id'>[];
 }
 
 export interface DishQueryFilters {
   difficulty?: string;
-  tag_id?: number;
+  tag?: string;
   search?: string;
-  user_id?: number;
-  is_public?: boolean;
+  user_id?: string;
   limit?: number;
-  offset?: number;
+  page?: number;
 }

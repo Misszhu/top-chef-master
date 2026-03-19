@@ -7,7 +7,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'topchef_secret_key';
 const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as any;
 
 export interface TokenPayload {
-  userId: number;
+  userId: string;
   openid: string;
 }
 

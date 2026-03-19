@@ -1,21 +1,22 @@
 import { Request, Response } from 'express';
 import { authService } from '../services/auth.service';
 import { userRepository } from '../repositories/user.repository';
+import { sendError, sendSuccess } from '../utils/api-response';
 
 export class UserController {
   async login(req: Request, res: Response) {
     const { code } = req.body;
     
     if (!code) {
-      return res.status(400).json({ message: 'Code is required for WeChat login' });
+      return sendError(res, 400, 'VALIDATION_ERROR', 'code 必填');
     }
     
     try {
       const result = await authService.wechatLogin(code);
-      return res.json(result);
+      return sendSuccess(res, result);
     } catch (error) {
       console.error('Login error:', error);
-      return res.status(500).json({ message: 'Internal server error during login' });
+      return sendError(res, 500, 'INTERNAL_ERROR', '登录失败');
     }
   }
 
@@ -23,18 +24,18 @@ export class UserController {
     const userId = req.user?.userId;
     
     if (!userId) {
-      return res.status(401).json({ message: 'User not authenticated' });
+      return sendError(res, 401, 'AUTH_REQUIRED', '需要登录');
     }
     
     try {
       const user = await userRepository.findById(userId);
       if (!user) {
-        return res.status(404).json({ message: 'User not found' });
+        return sendError(res, 404, 'NOT_FOUND', '用户不存在');
       }
-      return res.json(user);
+      return sendSuccess(res, user);
     } catch (error) {
       console.error('Get profile error:', error);
-      return res.status(500).json({ message: 'Internal server error fetching profile' });
+      return sendError(res, 500, 'INTERNAL_ERROR', '获取用户信息失败');
     }
   }
 }
