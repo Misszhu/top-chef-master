@@ -12,6 +12,10 @@
 - **CSS 预处理**：SCSS/SASS
 - **代码规范**：ESLint + Prettier
 
+### 1.1.1 技术路线说明（云端同步优先）
+- **云端为主**：业务数据（菜谱、评论、收藏、关注、菜单、购物清单、计数）以服务端为权威来源；客户端只做缓存、离线队列与弱网降级。
+- **本地存储定位**：用于缓存（列表/详情/用户信息）、离线草稿与同步队列，不再承担“长期主存储”职责。
+
 ### 1.2 架构图
 ```
 ┌─────────────────────────────────────────────┐
@@ -207,6 +211,16 @@ backend/
 
 #### 用户表 (users)
 ```sql
+-- 需要扩展：pgcrypto 用于 gen_random_uuid()
+-- CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 用户状态枚举（PostgreSQL 需要先创建 TYPE）
+DO $$ BEGIN
+  CREATE TYPE user_status AS ENUM ('active', 'banned', 'deleted');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   wechat_openid VARCHAR(100) UNIQUE NOT NULL,
@@ -215,7 +229,7 @@ CREATE TABLE users (
   avatar_url TEXT,
   phone VARCHAR(20),
   email VARCHAR(100),
-  status ENUM('active', 'banned', 'deleted') DEFAULT 'active',
+  status user_status NOT NULL DEFAULT 'active',
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   deleted_at TIMESTAMP
@@ -224,6 +238,13 @@ CREATE TABLE users (
 
 #### 菜肴表 (dishes)
 ```sql
+-- 可见性枚举
+DO $$ BEGIN
+  CREATE TYPE dish_visibility AS ENUM ('private', 'followers', 'public');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE dishes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
@@ -239,10 +260,15 @@ CREATE TABLE dishes (
   deleted_at TIMESTAMP,
   view_count INTEGER DEFAULT 0,
   like_count INTEGER DEFAULT 0,
+  visibility dish_visibility NOT NULL DEFAULT 'private',
+  comments_enabled BOOLEAN NOT NULL DEFAULT true,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user_id (user_id),
-  INDEX idx_created_at (created_at)
+  -- 索引在 PostgreSQL 中用 CREATE INDEX 单独创建
 );
+
+CREATE INDEX IF NOT EXISTS idx_dishes_user_id ON dishes(user_id);
+CREATE INDEX IF NOT EXISTS idx_dishes_created_at ON dishes(created_at);
+CREATE INDEX IF NOT EXISTS idx_dishes_visibility ON dishes(visibility);
 ```
 
 #### 食材表 (ingredients)
@@ -251,13 +277,16 @@ CREATE TABLE ingredients (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   dish_id UUID NOT NULL,
   name VARCHAR(100) NOT NULL,
-  amount VARCHAR(50),
+  quantity DECIMAL(10,2),
   unit VARCHAR(20),
+  note VARCHAR(50), -- 例如：适量/少许/可选
   sequence INTEGER,
   created_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
-  INDEX idx_dish_id (dish_id)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_ingredients_dish_id ON ingredients(dish_id);
 ```
 
 #### 烹饪步骤表 (cooking_steps)
@@ -271,9 +300,10 @@ CREATE TABLE cooking_steps (
   duration_minutes INTEGER,
   created_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
-  INDEX idx_dish_id (dish_id),
   UNIQUE (dish_id, step_number)
 );
+
+CREATE INDEX IF NOT EXISTS idx_steps_dish_id ON cooking_steps(dish_id);
 ```
 
 #### 收藏表 (favorites)
@@ -286,9 +316,11 @@ CREATE TABLE favorites (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
   UNIQUE (user_id, dish_id),
-  INDEX idx_user_id (user_id),
-  INDEX idx_dish_id (dish_id)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_dish_id ON favorites(dish_id);
 ```
 
 #### 评论表 (comments)
@@ -304,9 +336,11 @@ CREATE TABLE comments (
   deleted_at TIMESTAMP,
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_dish_id (dish_id),
-  INDEX idx_user_id (user_id)
+  UNIQUE (dish_id, user_id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_comments_dish_id ON comments(dish_id);
+CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 ```
 
 #### 分享记录表 (shares)
@@ -319,9 +353,44 @@ CREATE TABLE shares (
   created_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_dish_id (dish_id),
-  INDEX idx_user_id (user_id)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_shares_dish_id ON shares(dish_id);
+CREATE INDEX IF NOT EXISTS idx_shares_user_id ON shares(user_id);
+```
+
+#### 点赞表 (dish_likes)（新增）
+```sql
+CREATE TABLE dish_likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dish_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE (dish_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dish_likes_dish_id ON dish_likes(dish_id);
+CREATE INDEX IF NOT EXISTS idx_dish_likes_user_id ON dish_likes(user_id);
+```
+
+#### 关注表 (follows)（新增）
+```sql
+CREATE TABLE follows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id UUID NOT NULL, -- 关注者
+  followee_id UUID NOT NULL, -- 被关注者
+  created_at TIMESTAMP DEFAULT NOW(),
+  FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (followee_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE (follower_id, followee_id),
+  CHECK (follower_id <> followee_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
+CREATE INDEX IF NOT EXISTS idx_follows_followee_id ON follows(followee_id);
 ```
 
 #### 菜单表 (menus)（新增）
@@ -339,9 +408,11 @@ CREATE TABLE menus (
   updated_at TIMESTAMP DEFAULT NOW(),
   deleted_at TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user_id (user_id),
-  INDEX idx_created_at (created_at)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_menus_user_id ON menus(user_id);
+CREATE INDEX IF NOT EXISTS idx_menus_created_at ON menus(created_at);
 ```
 
 #### 菜单项表 (menu_items)（新增）
@@ -357,9 +428,11 @@ CREATE TABLE menu_items (
   FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
   UNIQUE (menu_id, dish_id),
-  INDEX idx_menu_id (menu_id),
-  INDEX idx_dish_id (dish_id)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_menu_items_menu_id ON menu_items(menu_id);
+CREATE INDEX IF NOT EXISTS idx_menu_items_dish_id ON menu_items(dish_id);
 ```
 
 #### 购物清单表 (shopping_lists)（新增）
@@ -368,13 +441,16 @@ CREATE TABLE shopping_lists (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL,
   menu_id UUID,
+  estimated_cost DECIMAL(10,2),
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE SET NULL,
-  INDEX idx_user_id (user_id),
-  INDEX idx_menu_id (menu_id)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_shopping_lists_user_id ON shopping_lists(user_id);
+CREATE INDEX IF NOT EXISTS idx_shopping_lists_menu_id ON shopping_lists(menu_id);
 ```
 
 #### 购物清单项表 (shopping_list_items)（新增）
@@ -392,11 +468,65 @@ CREATE TABLE shopping_list_items (
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (shopping_list_id) REFERENCES shopping_lists(id) ON DELETE CASCADE,
-  INDEX idx_shopping_list_id (shopping_list_id)
+  -- index separately
 );
+
+CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id ON shopping_list_items(shopping_list_id);
 ```
 
 ### 2.5 后端RESTful API 设计
+
+#### 2.5.1 统一响应结构与错误码规范（新增）
+
+**成功响应（建议）**
+```json
+{
+  "data": {},
+  "meta": {
+    "requestId": "req_...",
+    "ts": 1710230400000
+  }
+}
+```
+
+**分页响应（建议）**
+```json
+{
+  "data": [],
+  "pagination": { "page": 1, "limit": 20, "total": 100 },
+  "meta": { "requestId": "req_...", "ts": 1710230400000 }
+}
+```
+
+**错误响应（统一）**
+```json
+{
+  "error": {
+    "code": "AUTH_REQUIRED",
+    "message": "需要登录",
+    "details": {},
+    "requestId": "req_..."
+  }
+}
+```
+
+**错误码与语义**
+- **401 Unauthorized**：未登录/Token 无效或过期
+  - `code` 示例：`AUTH_REQUIRED`、`TOKEN_EXPIRED`、`TOKEN_INVALID`
+  - 客户端动作：尝试 `POST /api/v1/auth/refresh` 刷新；失败则跳登录
+- **403 Forbidden**：已登录但无权限（含可见性/作者权限/被封禁）
+  - `code` 示例：`FORBIDDEN`、`ACCOUNT_BANNED`、`VISIBILITY_DENIED`
+  - 客户端动作：提示无权限；对于“不可见资源”推荐后端返回 404（见下）
+- **404 Not Found**：资源不存在或对当前用户不可见（防枚举）
+  - `code` 示例：`NOT_FOUND`
+  - 客户端动作：提示“内容不存在或已删除/无权限访问”，返回上页
+- **409 Conflict**：并发写入冲突/唯一约束冲突/版本不一致（用于离线同步与幂等）
+  - `code` 示例：`VERSION_CONFLICT`、`DUPLICATE_COMMENT`、`DUPLICATE_LIKE`
+  - 客户端动作：进入冲突处理（见“离线队列与冲突策略”）
+
+**约定**
+- 每个请求在日志与响应中带 `requestId`（可用中间件生成），便于排障与串联前后端日志。
+- 业务校验错误（如参数不合法）可使用 **400**（`VALIDATION_ERROR`），本文不展开。
 
 #### 身份验证接口
 ```
@@ -409,21 +539,21 @@ POST /api/v1/auth/logout
   响应：{ message: "退出成功" }
 
 POST /api/v1/auth/refresh
-  请求：无（使用 Cookie 中的 refresh_token）
-  响应：{ token: "新的 JWT Token" }
+  请求：{ refreshToken: "refresh token" }
+  响应：{ token: "新的 JWT Token", refreshToken?: "可选轮换" }
 ```
 
 #### 菜肴接口
 ```
 GET /api/v1/dishes
   参数：?page=1&limit=20&sort=latest&tag=快手菜&difficulty=easy
-  响应：{ data: [...], total: 100, page: 1 }
+  响应：{ data: [...], total: 100, page: 1, limit: 20 }
 
 GET /api/v1/dishes/:id
   响应：{ id, name, description, ingredients, steps, comments, ... }
 
 POST /api/v1/dishes
-  请求：{ name, description, difficulty, cookingTime, ... }
+  请求：{ name, description, difficulty, cookingTime, servings, tags, visibility, commentsEnabled, ingredients, steps, imageUrl? }
   响应：{ id, ... }  [需要认证]
 
 PUT /api/v1/dishes/:id
@@ -436,6 +566,12 @@ DELETE /api/v1/dishes/:id
 POST /api/v1/dishes/:id/image/upload
   请求：FormData（image 文件）
   响应：{ imageUrl: "..." }  [需要认证]
+
+POST /api/v1/dishes/:id/like
+  响应：{ liked: true, likeCount: 123 } [需要认证]
+
+DELETE /api/v1/dishes/:id/like
+  响应：{ liked: false, likeCount: 122 } [需要认证]
 ```
 
 #### 收藏接口
@@ -457,11 +593,15 @@ GET /api/v1/favorites/:dishId/status
 ```
 GET /api/v1/dishes/:id/comments
   参数：?page=1&limit=10
-  响应：{ data: [...], total: 50 }
+  响应：{ data: [...], total: 50, page: 1, limit: 10 }
 
 POST /api/v1/dishes/:id/comments
   请求：{ content, rating: 5 }
   响应：{ id, content, ... }  [需要认证]
+
+PUT /api/v1/comments/:id
+  请求：{ content, rating }
+  响应：{ id, content, ... }  [需要认证，需要是作者]
 
 DELETE /api/v1/comments/:id
   响应：{ message: "删除成功" }  [需要认证，需要是作者]
@@ -584,7 +724,7 @@ POST /api/v1/shopping-lists/:id/from-menu/:menuId
   iss: "topcheif-backend"
 }
 
-// Refresh Token（7天过期，存储在 HttpOnly Cookie）
+// Refresh Token（7天过期；小程序端建议存储在安全存储/加密存储中，并支持轮换）
 {
   sub: "用户ID",
   type: "refresh",
@@ -612,6 +752,26 @@ POST /api/v1/shopping-lists/:id/from-menu/:menuId
 - **CSRF 防护**：检查微信小程序请求完整性
 - **密钥管理**：敏感信息（appid、appsecret）存储在环境变量
 - **请求签名**：可选的请求签名验证
+- **内容安全**：对用户生成内容（菜名/描述/步骤/评论/头像/图片）进行敏感内容识别与拦截；提供举报接口与封禁策略
+- **权限控制**：基于 `visibility`、关注关系与所有者校验，控制菜肴/菜单的可见与互动权限
+
+#### 访问控制矩阵（MVP，新增）
+| 资源 | 操作 | private | followers | public |
+|---|---|---:|---:|---:|
+| dish | 查看详情 | 仅作者 | 作者 + 关注者 | 所有人 |
+| dish | 评论/评分 | 仅作者且 `comments_enabled=true` | 作者 + 关注者且开关开启 | 登录用户且开关开启 |
+| dish | 收藏/点赞/分享 | 仅作者 | 作者 + 关注者 | 登录用户 |
+| dish | 编辑/删除 | 仅作者 | 仅作者 | 仅作者 |
+
+说明：
+- “关注者”指 `follows` 中 `follower_id = viewer` 且 `followee_id = author` 的关系成立。
+- 列表接口返回仅包含 viewer 有权限看到的资源；对于无权限资源，统一返回 404（避免枚举）。
+
+#### 计数与反刷（MVP，新增）
+- **view_count**：后端在“成功返回详情”后计数；同一用户对同一菜在 30 分钟内重复访问只计 1 次（以 Redis Set/TTL 或 key+TTL 实现）。
+- **like_count**：以 `dish_likes` 唯一约束为准，写入成功后异步/事务内更新聚合字段。
+- **share_count**：记录 `shares` 明细；聚合字段可异步回写。
+- **一致性**：聚合字段（count）允许短暂延迟；明细表为事实来源。
 
 ### 2.7 缓存策略
 
@@ -780,42 +940,102 @@ top-chef-master/
 ## 4. 数据存储设计
 
 ### 4.1 本地存储方案
-采用微信小程序原生 Storage API，数据以 JSON 格式存储。
+采用微信小程序原生 Storage API 存储“缓存与离线队列”，服务端为权威数据源。
 
 ### 4.2 存储结构
 ```
 存储键值对：
 
-1. dishes:list
+1. cache:dishes:list:{queryHash}
+   { data: [...], total, page, limit, cachedAt }
+
+2. cache:dish:detail:{dishId}
+   { data: {...}, cachedAt }
+
+3. auth:token
+   { token, exp }
+
+4. auth:refreshToken
+   { refreshToken, exp }
+
+5. sync:queue
    [
-     {
-       id: "uuid-1",
-       name: "宫保鸡丁",
-       description: "...",
-       difficulty: "medium",
-       cookingTime: 30,
-       servings: 2,
-       image: "base64或本地路径",
-       tags: ["快手菜", "家常菜"],
-       ingredients: [...],
-       steps: [...],
-       isFavorite: true,
-       createdAt: 1710230400000,
-       updatedAt: 1710230400000
-     },
-     ...
+     { id, type: "dish.create|dish.update|comment.upsert|favorite.toggle|like.toggle|menu.update|shoppingList.update", payload, createdAt }
    ]
 
-2. favorites:ids
-   ["uuid-1", "uuid-3", ...]
-
-3. app:settings
+6. app:settings
    {
      theme: "light",
      language: "zh",
      ...
    }
 ```
+
+### 4.4 离线队列与冲突策略（updated_at/version）（新增）
+
+#### 4.4.1 核心思路
+- **服务端为权威**：客户端离线只记录“意图”（operation），在线后按队列顺序重放。
+- **乐观锁**：对可编辑资源（如 `dishes`、`menus`、`shopping_lists`）引入 `version`（整数递增）并保留 `updated_at`。
+- **冲突即显式处理**：当客户端基于旧版本提交更新，服务端返回 **409 `VERSION_CONFLICT`**，并携带服务端最新快照与版本。
+
+#### 4.4.2 数据结构与字段约定
+- **服务端表字段（建议补充）**
+  - `version INTEGER NOT NULL DEFAULT 1`
+  - `updated_at TIMESTAMP NOT NULL DEFAULT NOW()`
+- **更新请求必须携带**
+  - `ifMatchVersion`（客户端最后一次看到的 `version`）
+  - 或 `baseUpdatedAt`（不推荐单独使用，时钟偏差风险更高；可作为辅助手段）
+
+示例（更新菜谱）
+```json
+{
+  "name": "宫保鸡丁",
+  "description": "...",
+  "ifMatchVersion": 12
+}
+```
+
+#### 4.4.3 服务端处理规则（可直接实现）
+- **读接口**：返回 `version`、`updatedAt`。
+- **写接口（PUT/PATCH）**：
+  - 若 `ifMatchVersion` 不等于当前行 `version`：返回 `409 VERSION_CONFLICT`
+  - 若匹配：在同一事务内更新数据、`version = version + 1`、刷新 `updated_at`
+
+**409 返回体建议**
+```json
+{
+  "error": {
+    "code": "VERSION_CONFLICT",
+    "message": "数据已在其他端更新，请处理冲突后重试",
+    "details": {
+      "resource": "dish",
+      "id": "uuid",
+      "serverVersion": 13,
+      "serverUpdatedAt": "2026-03-19T10:00:00Z",
+      "serverSnapshot": { "id": "uuid", "name": "...", "version": 13 }
+    },
+    "requestId": "req_..."
+  }
+}
+```
+
+#### 4.4.4 客户端离线队列重放与幂等
+- **队列项建议字段**：`id`（uuid）、`type`、`payload`、`createdAt`、`retryCount`、`status`
+- **幂等建议**：
+  - 对“创建类”操作（如创建 dish/menu）：客户端生成 `clientRequestId`，服务端存幂等键（或用资源 `id` 由客户端预生成），避免重放导致重复创建
+  - 对“切换类”操作（like/favorite）：优先用显式 `POST`/`DELETE`，不要用 toggle，避免离线重放出现反向状态
+
+#### 4.4.5 冲突解决策略（MVP）
+- **默认策略**：客户端收到 `VERSION_CONFLICT` 时弹窗提示，提供两种选择：
+  - **使用服务器版本**：丢弃本地该条变更，从服务器快照覆盖本地缓存
+  - **手动合并后重试**：打开编辑页，基于服务器快照重新编辑，提交时携带新的 `ifMatchVersion`
+- **可自动合并的字段（可选）**：
+  - `tags`：集合并集（去重）
+  - `ingredients/steps`：若带 `id` 且支持项级编辑，可按项合并；否则 MVP 先不自动合并
+
+#### 4.4.6 与 409 的其他冲突区分
+- `DUPLICATE_COMMENT`：同一 `dish_id + user_id` 已存在评论（服务端唯一约束触发）。客户端应切换为“编辑评论”流程（PUT）。
+- `DUPLICATE_LIKE`：同一 `dish_id + user_id` 已点赞。客户端应将本地状态修正为已点赞，并不再重试该队列项。
 
 ### 4.3 存储操作
 - **查询**：获取完整菜肴列表
@@ -940,9 +1160,9 @@ export interface UIState {
 
 ### 7.2 图片处理
 - **上传方式**：选择本地图库或拍照
-- **存储方式**：转换为 Base64 存储在 localStorage
-- **优化策略**：图片压缩（宽度不超过 750px）
-- **大小限制**：单个图片不超过 500KB
+- **存储方式**：客户端压缩后上传到对象存储（OSS/COS），保存 URL 到后端
+- **优化策略**：生成缩略图（列表用）与原图（详情用）；宽度建议不超过 1080px
+- **大小限制**：单图建议 < 1MB（MVP），超限提示用户重新裁剪/压缩
 
 ### 7.3 收藏功能
 - **实现方式**：维护收藏 ID 列表
@@ -1002,8 +1222,8 @@ export interface UIState {
 - 定期清理过期缓存
 
 ### 9.3 网络优化
-- 不涉及网络，所有操作本地化
-- 支持离线使用
+- **请求优化**：列表分页、HTTP 缓存（ETag/Last-Modified 可选）、失败重试与指数退避
+- **弱网策略**：缓存兜底展示；离线编辑写入 `sync:queue`，恢复网络后自动同步并提示冲突
 
 ---
 
@@ -1102,9 +1322,10 @@ npm run build:weapp
 ## 13. 后续可扩展性设计
 
 ### 13.1 云端同步（Phase 2）
-- 集成云存储（云数据库）
-- 用户登录认证
-- 多设备数据同步
+本项目当前版本已以云端同步为核心；后续扩展点：
+- 更完善的离线冲突解决（字段级合并、版本向量）
+- 增量同步（按更新时间拉取）
+- 多端一致性与数据恢复策略（回收站/历史版本）
 
 ### 13.2 社交功能（Phase 2）
 - 分享菜谱给好友
@@ -1148,7 +1369,7 @@ npm run build:weapp
 
 ### 14.1 风险识别
 - localStorage 容量限制（通常 10MB）
-- Base64 图片存储效率低
+- 图片缓存与离线队列增长导致存储膨胀
 - 微信小程序版本差异
 
 ### 14.2 缓解方案
