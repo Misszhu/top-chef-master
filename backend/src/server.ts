@@ -5,8 +5,9 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+// 监听所有网卡地址，确保局域网设备/开发者工具模拟器能访问
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on ${process.env.NODE_ENV || 'development'}:${PORT}`);
 });
 
 // Handle unhandled promise rejections

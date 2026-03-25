@@ -949,11 +949,6 @@
   dependencies:
     core-js-pure "^3.48.0"
 
-"@babel/runtime@^7.14.5":
-  version "7.29.2"
-  resolved "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.2.tgz#9a6e2d05f4b6692e1801cd4fb176ad823930ed5e"
-  integrity sha512-JiDShH45zKHWyGe4ZNVRrCjBz8Nh9TMmZG1kh4QTK8hCBTWBi8Da+i7s1fJw7/lYpM4ccepSNfqzZ/QvABBi5g==
-
 "@babel/runtime@^7.24.4", "@babel/runtime@^7.7.6":
   version "7.28.6"
   resolved "https://registry.npmmirror.com/@babel/runtime/-/runtime-7.28.6.tgz#d267a43cb1836dc4d182cce93ae75ba954ef6d2b"
@@ -1986,14 +1981,10 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@tarojs/api@3.6.39":
-  version "3.6.39"
-  resolved "https://registry.npmjs.org/@tarojs/api/-/api-3.6.39.tgz#cc3e6826b8a8b35aa41afae7b76893a8406d8af6"
-  integrity sha512-HAO2XH7/yjWXJPa9NuvwHaxr2yiQ/rz05PumL8a86y8f21uT01f0/zD+i/v39sPCdigooJzqhnae7RmeFywxSg==
-  dependencies:
-    "@babel/runtime" "^7.14.5"
-    "@tarojs/runtime" "3.6.39"
-    "@tarojs/shared" "3.6.39"
+"@taro-platform/axios-taro-adapter@^1.0.0-alpha.3":
+  version "1.0.0-alpha.3"
+  resolved "https://registry.npmjs.org/@taro-platform/axios-taro-adapter/-/axios-taro-adapter-1.0.0-alpha.3.tgz#0763708a177a0b1d96e7b0f4c481ab174d0ced39"
+  integrity sha512-+9q9RucTf5FjvXBQaDsFpu6W26j6OVDPYgpmz3gffC2nPgvhm//mXsG7+/lomAjbNRr6zxDAc8OJu9/nmP63jQ==
 
 "@tarojs/api@4.1.7":
   version "4.1.7"
@@ -2312,14 +2303,6 @@
     rollup "^3.29.4"
     scss-bundle "^3.1.2"
 
-"@tarojs/runtime@3.6.39":
-  version "3.6.39"
-  resolved "https://registry.npmjs.org/@tarojs/runtime/-/runtime-3.6.39.tgz#a79a85c2a30d55eb3352af44cac46c998e3693fa"
-  integrity sha512-bBpnA4ZT005whtpcBp0ps1/zAsvfzMja2Jaf6IFz+/lf7zlOV1lz9APSaqULbZ7m73M6KWr15NezckWfrlP6AQ==
-  dependencies:
-    lodash-es "4.17.21"
-    tslib "^2.6.2"
-
 "@tarojs/runtime@4.1.7":
   version "4.1.7"
   resolved "https://registry.npmmirror.com/@tarojs/runtime/-/runtime-4.1.7.tgz#e7ab84f428def87f3754ec5a393307cc9bdd676a"
@@ -2342,11 +2325,6 @@
     resolve "^1.22.8"
     tapable "^2.2.1"
     webpack-merge "^5.10.0"
-
-"@tarojs/shared@3.6.39":
-  version "3.6.39"
-  resolved "https://registry.npmjs.org/@tarojs/shared/-/shared-3.6.39.tgz#0f466cf71a191639a8d2f493650e9e20b5c70846"
-  integrity sha512-JBDyAp+xKvzvcaQZV2G7zlf5cmwuGIODE1gfWRMUwBp9o6C4pbuVdNaA73b15eIiw1lNl0Kt3smkdl4Vody02g==
 
 "@tarojs/shared@4.1.7":
   version "4.1.7"
@@ -2390,13 +2368,6 @@
     "@tarojs/api" "4.1.7"
     "@tarojs/runtime" "4.1.7"
     "@types/postcss-url" "^10.0.4"
-
-"@tarojs/taro@^3.4.0":
-  version "3.6.39"
-  resolved "https://registry.npmjs.org/@tarojs/taro/-/taro-3.6.39.tgz#357638ba829461c69856bd0026f67f45801a5ebc"
-  integrity sha512-rekcfD6ZNAtzkRbFHVXdi1xWgrvU8OFFFLqNIt8uf1MjXAWPyyqaARKkB1UMdjs7O4N/kZNoxR55Hp/tsLr8YA==
-  dependencies:
-    "@tarojs/api" "3.6.39"
 
 "@tarojs/webpack5-prebundle@4.1.7":
   version "4.1.7"
@@ -3367,13 +3338,6 @@ available-typed-arrays@^1.0.7:
   integrity sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==
   dependencies:
     possible-typed-array-names "^1.0.0"
-
-axios-taro-adapter@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.npmjs.org/axios-taro-adapter/-/axios-taro-adapter-0.0.3.tgz#20a962b9c28349985b873212f70b75dc2f51d185"
-  integrity sha512-VjkPXPG0TOASvyZELMHaWI5VSlrfiPOot5xRn0KzxEMruruUIiPuc9MlgG08xynYzmSKMdt5tSSRYLsh/dK3LQ==
-  dependencies:
-    "@tarojs/taro" "^3.4.0"
 
 axios@^1.6.7, axios@^1.6.8:
   version "1.13.6"

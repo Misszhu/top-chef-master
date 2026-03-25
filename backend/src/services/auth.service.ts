@@ -17,7 +17,7 @@ export class AuthService {
       });
     }
     
-    const token = generateToken({ userId: user.id, openid: user.wechat_openid });
+    const token = generateToken({ userId: String(user.id), openid: String(user.wechat_openid) });
     
     return {
       token,

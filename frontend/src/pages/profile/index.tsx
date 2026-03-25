@@ -1,4 +1,4 @@
-import { View, Text, Image } from '@tarojs/components'
+import { View, Text } from '@tarojs/components'
 import { AtList, AtListItem, AtButton, AtAvatar } from 'taro-ui'
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
@@ -41,7 +41,7 @@ export default function Profile() {
   }
 
   useEffect(() => {
-    // Try to restore from storage on mount
+    // 1. 尝试从本地恢复 token
     const savedToken = Taro.getStorageSync('token')
     const savedUserInfo = Taro.getStorageSync('userInfo')
     
@@ -49,6 +49,29 @@ export default function Profile() {
       dispatch(setToken(savedToken))
       dispatch(setUserInfo(savedUserInfo))
     }
+
+    // 2. 若有 token，则以服务端 profile 为准做一次同步
+    const syncProfile = async () => {
+      const currentToken = savedToken || token
+      if (!currentToken) return
+      try {
+        const profile = await getProfile()
+        dispatch(setUserInfo(profile))
+        Taro.setStorageSync('userInfo', profile)
+      } catch (err: any) {
+        // token 失效：清理并提示重新登录
+        if (err?.response?.status === 401) {
+          dispatch(logout())
+          Taro.removeStorageSync('token')
+          Taro.removeStorageSync('userInfo')
+          Taro.showToast({ title: '登录已失效，请重新登录', icon: 'none' })
+        } else {
+          console.error('Sync profile error:', err)
+        }
+      }
+    }
+
+    syncProfile()
   }, [])
 
   return (

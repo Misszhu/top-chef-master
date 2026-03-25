@@ -1,12 +1,19 @@
 import axios from 'axios';
 import Taro from '@tarojs/taro';
-import taroAdapter from 'axios-taro-adapter';
+import MpAdapter, { defaultTransformRequest } from '@taro-platform/axios-taro-adapter';
 
 const request = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
-  adapter: taroAdapter,
 });
+
+// 为小程序等非 H5 环境设置适配器
+if (process.env.TARO_ENV !== 'h5') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (request.defaults as any).adapter = MpAdapter as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (request.defaults as any).transformRequest = defaultTransformRequest as any;
+}
 
 // Request interceptor
 request.interceptors.request.use(

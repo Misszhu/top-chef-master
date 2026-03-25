@@ -4,7 +4,7 @@ import { User, UserDTO } from '../models/user.model';
 export class UserRepository {
   async findByOpenId(openid: string): Promise<User | null> {
     const query = 'SELECT * FROM users WHERE wechat_openid = $1';
-    const { rows } = await pool.query(query, [openid]);
+    const { rows } = await pool.query<User>(query, [openid]);
     return rows[0] || null;
   }
 
@@ -16,12 +16,18 @@ export class UserRepository {
 
   async create(openid: string, userData: UserDTO): Promise<User> {
     const query = `
-      INSERT INTO users (wechat_openid, nickname, avatar_url, phone, email)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO users (wechat_openid, wechat_unionid, nickname, avatar_url, phone, email)
+      VALUES ($1, NULL, $2, $3, $4, $5)
       RETURNING *
     `;
-    const values = [openid, userData.nickname || null, userData.avatar_url || null, userData.phone || null, userData.email || null];
-    const { rows } = await pool.query(query, values);
+    const values = [
+      openid,
+      userData.nickname || null,
+      userData.avatar_url || null,
+      userData.phone || null,
+      userData.email || null,
+    ];
+    const { rows } = await pool.query<User>(query, values);
     return rows[0];
   }
 
@@ -36,8 +42,14 @@ export class UserRepository {
       WHERE id = $5
       RETURNING *
     `;
-    const values = [userData.nickname || null, userData.avatar_url || null, userData.phone || null, userData.email || null, id];
-    const { rows } = await pool.query(query, values);
+    const values = [
+      userData.nickname || null,
+      userData.avatar_url || null,
+      userData.phone || null,
+      userData.email || null,
+      id,
+    ];
+    const { rows } = await pool.query<User>(query, values);
     return rows[0] || null;
   }
 }

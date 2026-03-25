@@ -18,7 +18,8 @@ export default defineConfig<'webpack5'>(async (merge, { command, mode }) => {
     sourceRoot: 'src',
     outputRoot: 'dist',
     plugins: [
-      "@tarojs/plugin-generator"
+      '@tarojs/plugin-generator',
+      '@taro-platform/axios-taro-adapter/taro-plugin'
     ],
     defineConstants: {
     },
