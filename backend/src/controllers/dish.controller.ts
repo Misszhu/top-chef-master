@@ -4,19 +4,33 @@ import { DishQueryFilters } from '../models/dish.model';
 import { sendError, sendPagination, sendSuccess } from '../utils/api-response';
 import { ApiError } from '../utils/api-error';
 
+function pickString(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : undefined;
+  return undefined;
+}
+
 export class DishController {
   async getAllDishes(req: Request, res: Response) {
     const { difficulty, tag, search, user_id, limit, page } = req.query;
 
+    const difficultyStr = pickString(difficulty);
+    const tagStr = pickString(tag);
+    const searchStr = pickString(search);
+    const userIdStr = pickString(user_id);
+
     const filters: DishQueryFilters = {
-      difficulty: difficulty as string,
-      tag: tag as string,
-      search: search as string,
-      user_id: user_id as string,
+      difficulty: difficultyStr,
+      tag: tagStr,
+      search: searchStr,
+      user_id: userIdStr,
     };
 
-    const limitNum = limit ? parseInt(limit as string) : 20;
-    const pageNum = page ? parseInt(page as string) : 1;
+    const limitStr = pickString(limit);
+    const pageStr = pickString(page);
+
+    const limitNum = limitStr ? parseInt(limitStr, 10) : 20;
+    const pageNum = pageStr ? parseInt(pageStr, 10) : 1;
     const offsetNum = (Math.max(pageNum, 1) - 1) * limitNum;
 
     try {
@@ -30,11 +44,16 @@ export class DishController {
   }
 
   async getDishDetail(req: Request, res: Response) {
-    const { id } = req.params;
+    const { id: dishIdParam } = req.params;
 
     try {
+      const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
+      if (!dishId) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
+      }
+
       const viewerId = req.user?.userId ?? null;
-      const dish = await dishService.getDishById(id, viewerId);
+      const dish = await dishService.getDishById(dishId, viewerId);
       if (!dish) {
         return sendError(res, 404, 'NOT_FOUND', '菜谱不存在或无权限访问');
       }
@@ -63,7 +82,7 @@ export class DishController {
   }
 
   async updateDish(req: Request, res: Response) {
-    const { id } = req.params;
+    const { id: dishIdParam } = req.params;
     const userId = req.user?.userId;
     const dishData = req.body;
     const ifMatchVersion = req.body?.ifMatchVersion as number | undefined;
@@ -73,7 +92,12 @@ export class DishController {
     }
 
     try {
-      const dish = await dishService.updateDish(id, userId, dishData, ifMatchVersion);
+      const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
+      if (!dishId) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
+      }
+
+      const dish = await dishService.updateDish(dishId, userId, dishData, ifMatchVersion);
       if (!dish) {
         return sendError(res, 404, 'NOT_FOUND', '菜谱不存在或无权限访问');
       }
@@ -88,7 +112,7 @@ export class DishController {
   }
 
   async deleteDish(req: Request, res: Response) {
-    const { id } = req.params;
+    const { id: dishIdParam } = req.params;
     const userId = req.user?.userId;
 
     if (!userId) {
@@ -96,7 +120,12 @@ export class DishController {
     }
 
     try {
-      const success = await dishService.deleteDish(id, userId);
+      const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
+      if (!dishId) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
+      }
+
+      const success = await dishService.deleteDish(dishId, userId);
       if (!success) {
         return sendError(res, 404, 'NOT_FOUND', '菜谱不存在或无权限访问');
       }
@@ -111,11 +140,16 @@ export class DishController {
   }
 
   async likeDish(req: Request, res: Response) {
-    const { id } = req.params;
+    const { id: dishIdParam } = req.params;
     const userId = req.user?.userId;
     if (!userId) return sendError(res, 401, 'AUTH_REQUIRED', '需要登录');
     try {
-      const likeCount = await dishService.likeDish(id, userId);
+      const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
+      if (!dishId) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
+      }
+
+      const likeCount = await dishService.likeDish(dishId, userId);
       return sendSuccess(res, { liked: true, likeCount });
     } catch (error: any) {
       if (error instanceof ApiError) {
@@ -127,11 +161,16 @@ export class DishController {
   }
 
   async unlikeDish(req: Request, res: Response) {
-    const { id } = req.params;
+    const { id: dishIdParam } = req.params;
     const userId = req.user?.userId;
     if (!userId) return sendError(res, 401, 'AUTH_REQUIRED', '需要登录');
     try {
-      const likeCount = await dishService.unlikeDish(id, userId);
+      const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
+      if (!dishId) {
+        return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
+      }
+
+      const likeCount = await dishService.unlikeDish(dishId, userId);
       return sendSuccess(res, { liked: false, likeCount });
     } catch (error) {
       console.error('Error unliking dish:', error);

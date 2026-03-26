@@ -14,14 +14,15 @@ export class UserRepository {
     return rows[0] || null;
   }
 
-  async create(openid: string, userData: UserDTO): Promise<User> {
+  async create(openid: string, userData: UserDTO, unionid?: string | null): Promise<User> {
     const query = `
       INSERT INTO users (wechat_openid, wechat_unionid, nickname, avatar_url, phone, email)
-      VALUES ($1, NULL, $2, $3, $4, $5)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
     `;
     const values = [
       openid,
+      unionid || null,
       userData.nickname || null,
       userData.avatar_url || null,
       userData.phone || null,

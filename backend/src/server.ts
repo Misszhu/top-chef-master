@@ -1,7 +1,7 @@
 import app from './app';
 import http from 'http';
 
-const PORT = process.env.PORT || 3000;
+const PORT = parseInt(String(process.env.PORT || '3000'), 10);
 
 const server = http.createServer(app);
 
