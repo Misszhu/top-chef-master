@@ -1,5 +1,5 @@
-import { View, Text, Image, ScrollView } from '@tarojs/components'
-import { AtCard, AtSearchBar, AtTag, AtActivityIndicator } from 'taro-ui'
+import { View, Text, ScrollView, Image } from '@tarojs/components'
+import { AtSearchBar } from 'taro-ui'
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Taro from '@tarojs/taro'
@@ -10,8 +10,9 @@ import './index.scss'
 
 export default function Index() {
   const dispatch = useDispatch()
-  const { dishes, loading, error } = useSelector((state: RootState) => state.dish)
+  const { dishes, loading } = useSelector((state: RootState) => state.dish)
   const [searchValue, setSearchValue] = useState('')
+  const skeletonCards = Array.from({ length: 6 })
 
   const fetchDishes = async (search?: string) => {
     dispatch(setLoading(true))
@@ -48,6 +49,7 @@ export default function Index() {
     <View className='index-page'>
       <View className='search-container'>
         <AtSearchBar
+          className='home-search-bar'
           value={searchValue}
           onChange={onSearchChange}
           onActionClick={onSearchAction}
@@ -58,29 +60,46 @@ export default function Index() {
       <ScrollView scrollY className='dish-list-container'>
         {loading && dishes.length === 0 ? (
           <View className='loading-container'>
-            <AtActivityIndicator mode='center' content='努力加载中...' />
+            <View className='skeleton-grid'>
+              {skeletonCards.map((_, idx) => (
+                <View key={idx} className='skeleton-card'>
+                  <View className='skeleton-thumb' />
+                  <View className='skeleton-content'>
+                    <View className='skeleton-line skeleton-w-85 skeleton-title-line' />
+                    <View className='skeleton-line skeleton-w-65 skeleton-desc-line' />
+                    <View className='skeleton-author'>
+                      <View className='skeleton-avatar' />
+                      <View className='skeleton-line skeleton-w-55 skeleton-author-line' />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         ) : (
           <View className='dish-grid'>
             {dishes.map((dish) => (
-              <View key={dish.id} className='dish-card-wrapper' onClick={() => handleCardClick(dish.id)}>
-                <AtCard
-                  title={dish.name}
-                  extra={dish.difficulty}
-                  note={`烹饪时间: ${dish.cooking_time}分钟`}
-                  thumb={dish.image_url || 'https://via.placeholder.com/150'}
-                >
-                  <View className='dish-card-content'>
-                    <Text className='dish-desc'>{dish.description}</Text>
-                    <View className='dish-info'>
-                      <Text className='dish-user'>by {dish.user_nickname}</Text>
-                      <View className='dish-stats'>
-                        <Text className='stats-item'>👁️ {dish.view_count}</Text>
-                        <Text className='stats-item'>⭐ {dish.average_rating ? Number(dish.average_rating).toFixed(1) : '新'}</Text>
-                      </View>
-                    </View>
+              <View key={dish.id} className='dish-card' onClick={() => handleCardClick(dish.id)}>
+                <Image
+                  className='dish-thumb'
+                  src={dish.image_url || 'https://via.placeholder.com/400'}
+                  mode='aspectFill'
+                />
+                <View className='dish-info'>
+                  <Text className='dish-title'>{dish.name}</Text>
+                  <Text className='dish-desc'>{dish.description ?? ''}</Text>
+                  <View className='dish-author'>
+                    <Image
+                      className='dish-avatar'
+                      src={
+                        dish.user_avatar_url ||
+                        'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+                      }
+                      mode='aspectFill'
+                    />
+                    <Text className='dish-author-name'>{dish.user_nickname || '主厨'}</Text>
                   </View>
-                </AtCard>
+                </View>
               </View>
             ))}
           </View>
@@ -88,7 +107,8 @@ export default function Index() {
         
         {!loading && dishes.length === 0 && (
           <View className='no-data'>
-            <Text>还没有菜肴哦，快去添加吧！</Text>
+            <Text className='empty-title'>还没有菜肴哦</Text>
+            <Text className='empty-sub'>试试换个搜索关键词，或者稍后回来看看新内容。</Text>
           </View>
         )}
       </ScrollView>

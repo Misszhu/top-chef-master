@@ -2,76 +2,259 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #f8f8f8;
+  background-color: var(--tc-bg);
 
   .search-container {
-    padding: 10rpx 0;
-    background-color: #fff;
+    padding: 8rpx 0 10rpx;
+    background-color: rgba(255, 255, 255, 0.92);
+  }
+
+  /* 首页搜索框与页面 26/22/20rpx 字体体系对齐 */
+  .home-search-bar {
+    padding: 8rpx 20rpx;
+    background-color: transparent;
+  }
+
+  .home-search-bar .at-search-bar__input-cnt {
+    height: 64rpx;
+    border-radius: 32rpx;
+    background-color: rgba(0, 0, 0, 0.04);
+    border: 1rpx solid rgba(0, 0, 0, 0.04);
+    box-shadow: none;
+  }
+
+  .home-search-bar .at-search-bar__input {
+    height: 64rpx !important;
+    padding: 0 76rpx;
+    font-size: 22rpx !important;
+    color: rgba(31, 31, 31, 0.88);
+  }
+
+  .home-search-bar .at-search-bar__placeholder-wrap {
+    height: 64rpx;
+    padding: 0 20rpx;
+  }
+
+  .home-search-bar .at-search-bar__placeholder,
+  .home-search-bar .at-search-bar__action,
+  .home-search-bar .at-search-bar__clear,
+  .home-search-bar .at-search-bar__placeholder-wrap .at-icon {
+    font-size: 22rpx;
+  }
+
+  .home-search-bar .at-search-bar__placeholder {
+    color: rgba(31, 31, 31, 0.42);
+  }
+
+  .home-search-bar .at-search-bar__placeholder-wrap .at-icon,
+  .home-search-bar .at-search-bar__clear {
+    color: rgba(31, 31, 31, 0.35);
+  }
+
+  .home-search-bar .at-search-bar__action {
+    color: var(--tc-primary);
+    background-color: rgba(255, 153, 0, 0.12);
+    border-radius: 24rpx;
+    padding: 0 18rpx;
+    margin-left: 12rpx;
   }
 
   .dish-list-container {
     flex: 1;
-    padding: 20rpx;
-
-    .dish-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 20rpx;
-    }
-
-    .dish-card-wrapper {
-      margin-bottom: 20rpx;
-
-      .at-card {
-        margin: 0;
-        border-radius: 16rpx;
-        overflow: hidden;
-        box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-      }
-
-      .dish-card-content {
-        .dish-desc {
-          font-size: 26rpx;
-          color: #666;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 2;
-          overflow: hidden;
-          margin-bottom: 16rpx;
-          line-height: 1.4;
-        }
-
-        .dish-info {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 10rpx;
-
-          .dish-user {
-            font-size: 24rpx;
-            color: #999;
-          }
-
-          .dish-stats {
-            display: flex;
-            gap: 20rpx;
-
-            .stats-item {
-              font-size: 22rpx;
-              color: #999;
-            }
-          }
-        }
-      }
-    }
+    padding: 18rpx;
+    padding-bottom: 30rpx;
+    /* 关键：小程序里容器 padding 不应撑宽到屏幕之外 */
+    box-sizing: border-box;
+    width: 100%;
   }
 
-  .loading-container, .no-data {
+  .dish-grid {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .dish-card {
+    width: calc(50% - 10rpx);
+    box-sizing: border-box;
+    border-radius: 18rpx;
+    overflow: hidden;
+    background-color: var(--tc-card);
+    box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.04);
+    margin-bottom: 20rpx;
+  }
+
+  .dish-thumb {
+    width: 100%;
+    height: 240rpx;
+    background-color: rgba(0, 0, 0, 0.03);
+  }
+
+  .dish-info {
+    padding: 14rpx 14rpx 16rpx;
+  }
+
+  .dish-title {
+    font-size: 26rpx;
+    font-weight: 800;
+    color: var(--tc-text);
+    margin-bottom: 10rpx;
+  }
+
+  .dish-desc {
+    font-size: 22rpx;
+    color: var(--tc-muted);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    overflow: hidden;
+    margin-bottom: 12rpx;
+  }
+
+  .dish-author {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+  }
+
+  .dish-avatar {
+    width: 40rpx;
+    height: 40rpx;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  .dish-author-name {
+    font-size: 20rpx;
+    color: rgba(31, 31, 31, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 70%;
+  }
+
+  .loading-container {
+    padding: 30rpx 0;
+    min-height: 55vh;
     display: flex;
     justify-content: center;
+    align-items: flex-start;
+  }
+
+  .no-data {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    padding: 100rpx 0;
-    color: #999;
-    font-size: 28rpx;
+    padding: 120rpx 0 80rpx;
+  }
+
+  .empty-title {
+    font-size: 30rpx;
+    font-weight: 800;
+    color: var(--tc-text);
+    margin-bottom: 12rpx;
+  }
+
+  .empty-sub {
+    font-size: 22rpx;
+    color: rgba(31, 31, 31, 0.6);
+    line-height: 1.6;
+    text-align: center;
+    width: 70%;
+  }
+
+  /* skeleton */
+  .skeleton-grid {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 0 0 40rpx;
+  }
+
+  .skeleton-card {
+    width: calc(50% - 10rpx);
+    background-color: var(--tc-card);
+    border-radius: 18rpx;
+    overflow: hidden;
+    box-shadow: 0 12rpx 28rpx rgba(0, 0, 0, 0.04);
+    margin-bottom: 20rpx;
+  }
+
+  .skeleton-thumb {
+    width: 100%;
+    height: 240rpx;
+    border-radius: 18rpx;
+  }
+
+  .skeleton-content {
+    padding: 14rpx 14rpx 16rpx;
+  }
+
+  .skeleton-line {
+    height: 22rpx;
+    border-radius: 12rpx;
+    margin-bottom: 12rpx;
+  }
+
+  .skeleton-title-line {
+    margin-bottom: 10rpx;
+  }
+
+  .skeleton-desc-line {
+    margin-bottom: 12rpx;
+  }
+
+  .skeleton-author {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+  }
+
+  .skeleton-avatar {
+    width: 40rpx;
+    height: 40rpx;
+    border-radius: 50%;
+    margin-bottom: 0;
+  }
+
+  .skeleton-author-line {
+    margin-bottom: 0;
+  }
+
+  .skeleton-w-85 {
+    width: 85%;
+  }
+  .skeleton-w-65 {
+    width: 65%;
+  }
+  .skeleton-w-55 {
+    width: 55%;
+  }
+
+  .skeleton-thumb,
+  .skeleton-line,
+  .skeleton-avatar {
+    background: #f0f0f3;
+    background-image: linear-gradient(
+      90deg,
+      rgba(240, 240, 243, 0.2) 25%,
+      rgba(234, 234, 240, 0.8) 37%,
+      rgba(240, 240, 243, 0.2) 63%
+    );
+    background-size: 400% 100%;
+    animation: tc-shimmer 1.2s infinite linear;
+  }
+}
+
+@keyframes tc-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0% 0;
   }
 }

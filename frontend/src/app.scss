@@ -1,6 +1,44 @@
 @import "~taro-ui/dist/style/index.scss";
 
-// 自定义全局样式
+/* 全局视觉底座：统一主色、文字与卡片背景 */
+:root {
+  --tc-primary: #ff9900;
+  --tc-primary-2: #ff6a00;
+  --tc-bg: #f7f7fb;
+  --tc-card: #ffffff;
+  --tc-text: #1f1f1f;
+  --tc-muted: #8a8a8a;
+  --tc-border: rgba(0, 0, 0, 0.06);
+}
+
+page {
+  --tc-primary: #ff9900;
+  --tc-primary-2: #ff6a00;
+  --tc-bg: #f7f7fb;
+  --tc-card: #ffffff;
+  --tc-text: #1f1f1f;
+  --tc-muted: #8a8a8a;
+  --tc-border: rgba(0, 0, 0, 0.06);
+  background-color: var(--tc-bg);
+  color: var(--tc-text);
+}
+
 body {
-  background-color: #f8f8f8;
+  --tc-primary: #ff9900;
+  --tc-primary-2: #ff6a00;
+  --tc-bg: #f7f7fb;
+  --tc-card: #ffffff;
+  --tc-text: #1f1f1f;
+  --tc-muted: #8a8a8a;
+  --tc-border: rgba(0, 0, 0, 0.06);
+  background-color: var(--tc-bg);
+  color: var(--tc-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  line-height: 1.6;
+}
+
+/* 给小程序 WebView/组件留出更舒服的默认排版 */
+text {
+  color: inherit;
 }

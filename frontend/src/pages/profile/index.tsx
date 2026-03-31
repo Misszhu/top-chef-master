@@ -1,6 +1,6 @@
 import { View, Text } from '@tarojs/components'
-import { AtList, AtListItem, AtButton, AtAvatar } from 'taro-ui'
-import { useEffect } from 'react'
+import { AtList, AtListItem, AtButton, AtAvatar, AtIcon } from 'taro-ui'
+import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Taro from '@tarojs/taro'
 import { RootState } from '../../store'
@@ -11,6 +11,7 @@ import './index.scss'
 export default function Profile() {
   const dispatch = useDispatch()
   const { userInfo, token } = useSelector((state: RootState) => state.user)
+  const [activeTab, setActiveTab] = useState<'recipes' | 'works'>('recipes')
 
   const handleLogin = async () => {
     try {
@@ -38,6 +39,14 @@ export default function Profile() {
     Taro.removeStorageSync('token')
     Taro.removeStorageSync('userInfo')
     Taro.showToast({ title: '已退出登录', icon: 'none' })
+  }
+
+  const handleOpenMessages = () => {
+    Taro.showToast({ title: '消息功能开发中', icon: 'none' })
+  }
+
+  const handleOpenSettings = () => {
+    Taro.showToast({ title: '设置功能开发中', icon: 'none' })
   }
 
   useEffect(() => {
@@ -77,21 +86,46 @@ export default function Profile() {
   return (
     <View className='profile-page'>
       <View className='user-header'>
+        <View className='header-toolbar'>
+          <View className='header-toolbar-actions'>
+            <View className='toolbar-icon-item' onClick={handleOpenMessages}>
+              <AtIcon value='message' size={22} color='rgba(31, 31, 31, 0.42)' />
+              <Text className='toolbar-icon-label'>消息</Text>
+            </View>
+            <View className='toolbar-icon-item' onClick={handleOpenSettings}>
+              <AtIcon value='settings' size={22} color='rgba(31, 31, 31, 0.42)' />
+              <Text className='toolbar-icon-label'>设置</Text>
+            </View>
+          </View>
+        </View>
         {token ? (
-          <View className='user-info-section'>
-            <AtAvatar 
-              circle 
-              image={userInfo?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'} 
-              size='large'
-            />
-            <View className='user-text'>
-              <Text className='nickname'>{userInfo?.nickname || '主厨'}</Text>
-              <Text className='user-id'>ID: {userInfo?.id}</Text>
+          <View className='user-panel'>
+            <View className='user-info-section'>
+              <AtAvatar
+                circle
+                image={userInfo?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+                size='large'
+              />
+              <View className='user-text'>
+                <Text className='nickname'>{userInfo?.nickname || '主厨'}</Text>
+                <Text className='user-id'>ID: {userInfo?.id}</Text>
+                <Text className='user-bio'>添加个人简介，让厨房更了解你</Text>
+              </View>
+            </View>
+            <View className='user-stats'>
+              <View className='stat-item'>
+                <Text className='stat-value'>0</Text>
+                <Text className='stat-label'>关注</Text>
+              </View>
+              <View className='stat-item'>
+                <Text className='stat-value'>0</Text>
+                <Text className='stat-label'>粉丝</Text>
+              </View>
             </View>
           </View>
         ) : (
           <View className='login-section'>
-            <AtButton type='primary' onClick={handleLogin}>微信一键登录</AtButton>
+            <AtButton type='primary' className='login-btn' onClick={handleLogin}>微信一键登录</AtButton>
             <Text className='login-hint'>登录后即可管理您的私人菜谱</Text>
           </View>
         )}
@@ -114,6 +148,36 @@ export default function Profile() {
           )}
         </AtList>
       </View>
+
+      {token && (
+        <View className='works-section'>
+          <View className='works-tabs'>
+            <View
+              className={`works-tab-item ${activeTab === 'recipes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('recipes')}
+            >
+              <Text className='tab-text'>菜谱 0</Text>
+            </View>
+            <View
+              className={`works-tab-item ${activeTab === 'works' ? 'active' : ''}`}
+              onClick={() => setActiveTab('works')}
+            >
+              <Text className='tab-text'>作品 0</Text>
+            </View>
+          </View>
+
+          <View className='works-empty'>
+            <Text className='empty-copy'>
+              {activeTab === 'recipes'
+                ? '创建菜谱的人是厨房里的天使'
+                : '上传你的作品，记录每一次下厨成就'}
+            </Text>
+            <AtButton type='primary' className='create-btn'>
+              {activeTab === 'recipes' ? '开始创建第一道菜谱' : '开始发布第一条作品'}
+            </AtButton>
+          </View>
+        </View>
+      )}
     </View>
   )
 }
