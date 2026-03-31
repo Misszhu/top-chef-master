@@ -32,10 +32,10 @@
 
 ### 进行中（本周目标）
 
-- [ ] **前端详情页接入评论与点赞 UI**
-- [ ] **前端编辑/创建菜谱页（含 visibility/commentsEnabled/tags/ingredients/steps）**
-- [ ] **后端：评论开关与可见性校验更严格（写操作）**
-- [ ] **后端：评分聚合字段维护（`rating_avg/rating_count`）**
+- [x] **前端详情页接入评论与点赞 UI**
+- [x] **前端编辑/创建菜谱页（含 visibility/commentsEnabled/tags/ingredients/steps）**
+- [x] **后端：评论开关与可见性校验更严格（写操作）**
+- [x] **后端：评分聚合字段维护（`rating_avg/rating_count`）**
 
 ### 待开发（后续迭代）
 

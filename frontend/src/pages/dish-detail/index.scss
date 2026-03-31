@@ -40,6 +40,128 @@
         color: var(--tc-muted);
         line-height: 1.6;
       }
+
+      .rating-summary {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        margin: 20rpx 0;
+
+        .rating-score {
+          font-size: 36rpx;
+          font-weight: bold;
+          color: var(--tc-primary);
+          margin-right: 16rpx;
+        }
+
+        .rating-count {
+          font-size: 22rpx;
+          color: var(--tc-muted);
+          margin-left: 12rpx;
+        }
+      }
+
+      .action-bar {
+        display: flex;
+        align-items: center;
+        gap: 20rpx;
+        margin-top: 24rpx;
+        flex-wrap: wrap;
+
+        .action-edit {
+          margin-left: 0;
+        }
+      }
+    }
+
+    .star-row {
+      display: flex;
+      flex-direction: row;
+
+      .star {
+        font-size: 36rpx;
+        padding: 0 4rpx;
+      }
+
+      .star-on {
+        color: #ffb400;
+      }
+
+      .star-off {
+        color: #ddd;
+      }
+    }
+
+    .comments-section {
+      margin-bottom: 40rpx;
+
+      .hint-muted {
+        font-size: 24rpx;
+        color: var(--tc-muted);
+        display: block;
+        margin-bottom: 16rpx;
+      }
+
+      .comment-form {
+        margin-bottom: 32rpx;
+        padding: 24rpx;
+        background: rgba(255, 153, 0, 0.06);
+        border-radius: 16rpx;
+
+        .form-label {
+          font-size: 24rpx;
+          color: var(--tc-muted);
+          display: block;
+          margin-bottom: 8rpx;
+        }
+
+        .comment-textarea {
+          width: 100%;
+          min-height: 160rpx;
+          padding: 16rpx;
+          box-sizing: border-box;
+          font-size: 26rpx;
+          border: 1rpx solid var(--tc-border);
+          border-radius: 12rpx;
+          margin-bottom: 20rpx;
+        }
+
+        .comment-form-actions {
+          display: flex;
+          gap: 20rpx;
+          flex-wrap: wrap;
+        }
+      }
+
+      .comment-item {
+        padding: 24rpx 0;
+        border-bottom: 1rpx solid var(--tc-border);
+
+        .comment-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12rpx;
+        }
+
+        .comment-author {
+          font-size: 26rpx;
+          font-weight: 600;
+          color: var(--tc-text);
+        }
+
+        .comment-body {
+          font-size: 26rpx;
+          color: var(--tc-text);
+          line-height: 1.5;
+        }
+
+        .comment-time {
+          font-size: 22rpx;
+          color: var(--tc-muted);
+          margin-top: 8rpx;
+        }
+      }
     }
 
     .steps-section {

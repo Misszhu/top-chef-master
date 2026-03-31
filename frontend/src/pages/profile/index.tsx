@@ -6,6 +6,7 @@ import Taro from '@tarojs/taro'
 import { RootState } from '../../store'
 import { setUserInfo, setToken, logout } from '../../store/slices/userSlice'
 import { login, getProfile } from '../../services/user'
+import { isAxiosStatus } from '../../utils/api-error'
 import './index.scss'
 
 export default function Profile() {
@@ -69,7 +70,7 @@ export default function Profile() {
         Taro.setStorageSync('userInfo', profile)
       } catch (err: any) {
         // token 失效：清理并提示重新登录
-        if (err?.response?.status === 401) {
+        if (isAxiosStatus(err, 401)) {
           dispatch(logout())
           Taro.removeStorageSync('token')
           Taro.removeStorageSync('userInfo')
@@ -103,12 +104,12 @@ export default function Profile() {
             <View className='user-info-section'>
               <AtAvatar
                 circle
-                image={userInfo?.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
+                image={(userInfo && userInfo.avatar_url) || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'}
                 size='large'
               />
               <View className='user-text'>
-                <Text className='nickname'>{userInfo?.nickname || '主厨'}</Text>
-                <Text className='user-id'>ID: {userInfo?.id}</Text>
+                <Text className='nickname'>{(userInfo && userInfo.nickname) || '主厨'}</Text>
+                <Text className='user-id'>ID: {userInfo && userInfo.id}</Text>
                 <Text className='user-bio'>添加个人简介，让厨房更了解你</Text>
               </View>
             </View>
@@ -172,7 +173,17 @@ export default function Profile() {
                 ? '创建菜谱的人是厨房里的天使'
                 : '上传你的作品，记录每一次下厨成就'}
             </Text>
-            <AtButton type='primary' className='create-btn'>
+            <AtButton
+              type='primary'
+              className='create-btn'
+              onClick={() => {
+                if (activeTab === 'recipes') {
+                  Taro.navigateTo({ url: '/pages/add-dish/index' })
+                } else {
+                  Taro.showToast({ title: '作品发布开发中', icon: 'none' })
+                }
+              }}
+            >
               {activeTab === 'recipes' ? '开始创建第一道菜谱' : '开始发布第一条作品'}
             </AtButton>
           </View>

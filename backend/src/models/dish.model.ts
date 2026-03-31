@@ -41,6 +41,8 @@ export interface Dish {
   user_avatar_url?: string;
   ingredients?: Ingredient[];
   steps?: CookingStep[];
+  /** 当前登录用户是否已点赞；未登录不返回 */
+  liked_by_me?: boolean;
 }
 
 export interface DishCreateDTO {

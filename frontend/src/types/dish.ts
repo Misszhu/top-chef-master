@@ -41,6 +41,8 @@ export interface Dish {
   user_avatar_url?: string;
   ingredients?: Ingredient[];
   steps?: CookingStep[];
+  /** 登录且后端返回时存在 */
+  liked_by_me?: boolean;
 }
 
 export interface DishCreateDTO {
@@ -55,6 +57,8 @@ export interface DishCreateDTO {
   comments_enabled?: boolean;
   ingredients?: Omit<Ingredient, 'id' | 'dish_id'>[];
   steps?: Omit<CookingStep, 'id' | 'dish_id'>[];
+  /** 更新菜谱时用于乐观锁 */
+  ifMatchVersion?: number;
 }
 
 export interface DishQueryFilters {

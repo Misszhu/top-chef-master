@@ -10,6 +10,9 @@ export class DishService {
   async getDishById(id: string, viewerId: string | null): Promise<Dish | null> {
     const dish = await dishRepository.findVisibleById(id, viewerId);
     if (dish) {
+      if (viewerId) {
+        dish.liked_by_me = await dishRepository.isLikedByUser(id, viewerId);
+      }
       // Async increment view count, don't wait for it
       dishRepository.incrementViewCount(id).catch(err => console.error('Error incrementing view count:', err));
     }
@@ -54,6 +57,10 @@ export class DishService {
   }
 
   async likeDish(dishId: string, userId: string): Promise<number> {
+    const visible = await dishRepository.findVisibleById(dishId, userId);
+    if (!visible) {
+      throw new ApiError(404, 'NOT_FOUND', '菜谱不存在或无权限访问');
+    }
     try {
       return await dishRepository.likeDish(dishId, userId);
     } catch (e: any) {
@@ -66,6 +73,10 @@ export class DishService {
   }
 
   async unlikeDish(dishId: string, userId: string): Promise<number> {
+    const visible = await dishRepository.findVisibleById(dishId, userId);
+    if (!visible) {
+      throw new ApiError(404, 'NOT_FOUND', '菜谱不存在或无权限访问');
+    }
     return dishRepository.unlikeDish(dishId, userId);
   }
 }

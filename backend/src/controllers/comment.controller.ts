@@ -25,9 +25,11 @@ export class CommentController {
     const offsetNum = (Math.max(pageNum, 1) - 1) * limitNum;
 
     try {
-      const { data, total } = await commentService.listByDishId(dishId, limitNum, offsetNum);
+      const viewerId = req.user?.userId ?? null;
+      const { data, total } = await commentService.listByDishId(dishId, limitNum, offsetNum, viewerId);
       return sendPagination(res, data, { page: pageNum, limit: limitNum, total });
-    } catch (e) {
+    } catch (e: any) {
+      if (e instanceof ApiError) return sendError(res, e.status, e.code, e.message, e.details);
       console.error('Error listing comments:', e);
       return sendError(res, 500, 'INTERNAL_ERROR', '获取评论失败');
     }

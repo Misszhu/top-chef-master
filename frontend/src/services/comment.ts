@@ -1,37 +1,38 @@
-import request from '../utils/request';
+import request from '../utils/request'
+import type { Comment, CommentUpsertBody } from '../types/comment'
 
-export interface Comment {
-  id: string;
-  dish_id: string;
-  user_id: string;
-  content: string;
-  rating: number | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-  user_nickname?: string | null;
-  user_avatar_url?: string | null;
+export interface CommentsPage {
+  data: Comment[]
+  pagination: { page: number; limit: number; total: number }
 }
 
-export const getCommentsByDish = async (
+export const getCommentsByDishId = async (
   dishId: string,
-  params: { page?: number; limit?: number } = {}
-): Promise<{ data: Comment[]; pagination: { page: number; limit: number; total: number } }> => {
-  const response = await request.get(`/dishes/${dishId}/comments`, { params });
-  return { data: response.data.data, pagination: response.data.pagination };
-};
+  page = 1,
+  limit = 20
+): Promise<CommentsPage> => {
+  const response = await request.get(`/dishes/${dishId}/comments`, {
+    params: { page, limit },
+  })
+  return {
+    data: response.data.data,
+    pagination: response.data.pagination,
+  }
+}
 
-export const upsertMyCommentForDish = async (dishId: string, payload: { content: string; rating?: number }) => {
-  const response = await request.post(`/dishes/${dishId}/comments`, payload);
-  return response.data.data as Comment;
-};
+export const upsertComment = async (dishId: string, body: CommentUpsertBody): Promise<Comment> => {
+  const response = await request.post(`/dishes/${dishId}/comments`, body)
+  return response.data.data
+}
 
-export const updateComment = async (commentId: string, payload: { content?: string; rating?: number }) => {
-  const response = await request.put(`/comments/${commentId}`, payload);
-  return response.data.data as Comment;
-};
+export const updateComment = async (
+  commentId: string,
+  body: Partial<CommentUpsertBody>
+): Promise<Comment> => {
+  const response = await request.put(`/comments/${commentId}`, body)
+  return response.data.data
+}
 
-export const deleteComment = async (commentId: string) => {
-  await request.delete(`/comments/${commentId}`);
-};
-
+export const deleteComment = async (commentId: string): Promise<void> => {
+  await request.delete(`/comments/${commentId}`)
+}

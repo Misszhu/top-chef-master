@@ -2,6 +2,8 @@ export default defineAppConfig({
   pages: [
     'pages/index/index',
     'pages/dish-detail/index',
+    'pages/add-dish/index',
+    'pages/edit-dish/index',
     'pages/profile/index'
   ],
   window: {

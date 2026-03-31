@@ -87,7 +87,7 @@ export default function Index() {
                 />
                 <View className='dish-info'>
                   <Text className='dish-title'>{dish.name}</Text>
-                  <Text className='dish-desc'>{dish.description ?? ''}</Text>
+                  <Text className='dish-desc'>{dish.description != null ? dish.description : ''}</Text>
                   <View className='dish-author'>
                     <Image
                       className='dish-avatar'

@@ -325,6 +325,35 @@ export class DishRepository {
     }
   }
 
+  async refreshRatingAggregates(dishId: string): Promise<void> {
+    const query = `
+      UPDATE dishes
+      SET rating_count = (
+          SELECT COUNT(*)::int
+          FROM comments
+          WHERE dish_id = $1 AND deleted_at IS NULL AND rating IS NOT NULL
+        ),
+        rating_avg = COALESCE(
+          (
+            SELECT ROUND(AVG(rating::numeric), 2)::decimal(3,2)
+            FROM comments
+            WHERE dish_id = $1 AND deleted_at IS NULL AND rating IS NOT NULL
+          ),
+          0
+        )
+      WHERE id = $1
+    `;
+    await pool.query(query, [dishId]);
+  }
+
+  async isLikedByUser(dishId: string, userId: string): Promise<boolean> {
+    const { rows } = await pool.query(
+      'SELECT 1 FROM dish_likes WHERE dish_id = $1 AND user_id = $2 LIMIT 1',
+      [dishId, userId]
+    );
+    return rows.length > 0;
+  }
+
   async unlikeDish(dishId: string, userId: string): Promise<number> {
     const client = await pool.connect();
     try {

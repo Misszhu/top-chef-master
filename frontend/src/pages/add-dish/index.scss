@@ -1,0 +1,80 @@
+.dish-form-page {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 80rpx;
+  box-sizing: border-box;
+  background: var(--tc-bg);
+
+  .field {
+    margin-bottom: 28rpx;
+
+    .label {
+      font-size: 26rpx;
+      color: var(--tc-text);
+      margin-bottom: 12rpx;
+      display: block;
+    }
+
+    .input {
+      padding: 20rpx;
+      background: var(--tc-card);
+      border-radius: 12rpx;
+      font-size: 28rpx;
+    }
+
+    .textarea {
+      min-height: 160rpx;
+      padding: 20rpx;
+      background: var(--tc-card);
+      border-radius: 12rpx;
+      font-size: 28rpx;
+      width: 100%;
+      box-sizing: border-box;
+    }
+  }
+
+  .row-inline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16rpx 0;
+  }
+
+  .seg-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+  }
+
+  .seg-btn {
+    padding: 12rpx 24rpx;
+    border-radius: 999rpx;
+    font-size: 24rpx;
+    background: var(--tc-card);
+    color: var(--tc-muted);
+    border: 1rpx solid var(--tc-border);
+  }
+
+  .seg-btn.active {
+    background: rgba(255, 153, 0, 0.15);
+    color: var(--tc-primary);
+    border-color: var(--tc-primary);
+  }
+
+  .sub-block {
+    margin-bottom: 24rpx;
+    padding: 20rpx;
+    background: var(--tc-card);
+    border-radius: 16rpx;
+  }
+
+  .sub-title {
+    font-size: 28rpx;
+    font-weight: 600;
+    margin-bottom: 16rpx;
+    display: block;
+  }
+
+  .footer-actions {
+    margin-top: 40rpx;
+  }
+}
