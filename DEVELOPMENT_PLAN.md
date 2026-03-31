@@ -40,7 +40,9 @@
 ### 待开发（后续迭代）
 
 - [ ] 收藏、关注、分享统计闭环
-- [ ] 菜单与购物清单（跨端同步）
+- [ ] **M3-A**：菜单与聚餐点菜（`menus` / `menu_items`，从菜谱加入、排序、乐观锁；单人）
+- [ ] **M3-B**：购物清单（从菜单生成、勾选/编辑、跨端同步）
+- [ ] **M4**：饮食日记（`meal_log_entries` + `/api/v1/meal-logs`，按日查询与 CRUD）
 - [ ] 内容安全/举报/封禁与可观测性
 
 ---
@@ -61,12 +63,28 @@
 - [ ] 收藏/取消收藏、收藏列表
 - [ ] 分享入口 + 分享统计回传（share/view）
 
-### M3：菜单与购物清单（跨端同步）
-验收标准（建议）：
-- [ ] menus CRUD + menu_items 管理
-- [ ] shopping_list 生成/编辑/勾选（同步）
+### M3：菜单、聚餐点菜与购物清单（跨端同步，分阶段交付）
+> 产品口径见 `PRODUCT_DESIGN.md` §2.1.8；技术口径见 `TECHNICAL_DESIGN.md` §2.4 / §13.4。
 
-### M4：内容安全与治理 + 可观测性
+**M3-A（菜单闭环，单人聚餐点菜）** 验收标准（建议）：
+- [ ] `menus` CRUD（含 `version` + `ifMatchVersion`，冲突 409）
+- [ ] `menu_items` 增删改；**从菜谱加入**时校验 dish 可见性；**排序**（`sequence` 或 `reorder` 接口二选一落地）
+- [ ] 菜单复制（`POST /menus/:id/copy` 或等价）
+- [ ] 小程序：菜单列表 / 编辑页、菜谱详情「加入菜单」入口（可先做最小闭环）
+
+**M3-B（购物清单）** 验收标准（建议）：
+- [ ] 从菜单生成购物清单（合并食材规则与产品一致）
+- [ ] `shopping_list_items` 勾选/改量/增删；清单级乐观锁
+- [ ] 小程序：购物清单页、弱网缓存策略（与技术文档 §4 一致）
+
+### M4：饮食日记
+验收标准（建议）：
+- [ ] 新建迁移：`meal_log_entries`（含 `meal_slot`、`version`、软删）
+- [ ] `GET /meal-logs?from&to` 分页；`POST/PUT/DELETE` 单条 CRUD；`PUT` 带 `ifMatchVersion`
+- [ ] 写入时 `dish_id` 非空则校验 viewer 对菜可见；`title` 快照策略与 `PRODUCT_DESIGN.md` §3 一致
+- [ ] 小程序：日视图 + 编辑页（菜谱选择器或自由文本）
+
+### M5：内容安全与治理 + 可观测性
 验收标准（建议）：
 - [ ] 文本/图片内容安全校验接入
 - [ ] 举报闭环 + 封禁策略落地
@@ -139,20 +157,47 @@
 
 ---
 
-## Iteration 3：菜单与购物清单（7-14 天）
+## Iteration 3：M3-A 菜单与聚餐点菜（5-10 天）
 
 ### Backend
-- [ ] menus CRUD + publish
-- [ ] menu_items 增删改序
-- [ ] shopping_lists 创建/从菜单生成/勾选同步
+- [ ] `menus` CRUD + 软删 + `version`/`ifMatchVersion`（与现有 `dishes` 模式对齐）
+- [ ] `menu_items` CRUD；`UNIQUE(menu_id, dish_id)` 行为与产品一致
+- [ ] 菜单项排序接口（`PUT .../reorder` 或逐项 `sequence`）
+- [ ] `POST /menus/:id/copy`（及可选 `publish`/分享占位，**不做**多人协作）
 
 ### Frontend
-- [ ] 菜单列表/编辑页
-- [ ] 购物清单页（分类、勾选、编辑、分享）
+- [ ] 菜单列表页、菜单编辑页
+- [ ] 菜谱详情「加入菜单」（选择目标菜单或默认新建）
 
 ---
 
-## Iteration 4：内容安全与可观测（持续）
+## Iteration 4：M3-B 购物清单（5-10 天）
+
+### Backend
+- [ ] `shopping_lists` + `shopping_list_items` 写路径与清单级 `version`
+- [ ] `POST .../from-menu/:menuId` 生成逻辑（食材合并）
+- [ ] 条目勾选/数量/备注的更新接口
+
+### Frontend
+- [ ] 购物清单页（分类、勾选、编辑）
+- [ ] 从菜单「生成购物清单」入口
+
+---
+
+## Iteration 5：M4 饮食日记（5-10 天）
+
+### Backend
+- [ ] migration：`meal_log_entries` + 索引（`user_id, eaten_date`）
+- [ ] `/api/v1/meal-logs` 区间查询与单资源 CRUD；关联 `dish_id` 时复用可见性校验
+- [ ] 软删与列表过滤
+
+### Frontend
+- [ ] 饮食日记日视图、记录编辑页
+- [ ] 409 冲突提示（与菜谱编辑一致的最小处理）
+
+---
+
+## Iteration 6：内容安全与可观测（持续）
 
 ### Backend
 - [ ] 文本/图片内容安全能力接入
@@ -171,4 +216,6 @@
 - **可见性与防枚举**：对不可见资源推荐统一返回 404。
 - **离线冲突**：写请求带 `ifMatchVersion`；409 必带 `serverSnapshot` 供前端处理。
 - **小程序环境**：生产环境 `API_BASE_URL` 必须替换成真实域名并配置合法域名白名单。
+- **菜单与日记边界**：菜单项引用 `dish_id`；日记可引用 `dish_id` 或自由文本，**禁止**用菜单表存「已吃记录」。
+- **Schema 增量**：`001_init_schema.sql` 已含 `menus`/`shopping_lists`；`meal_log_entries` 需**新迁移**落地，避免与线上已执行迁移冲突。
 

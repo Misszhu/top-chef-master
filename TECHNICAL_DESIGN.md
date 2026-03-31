@@ -97,6 +97,7 @@
 │ │  - UserService                    │
 │ │  - CommentService                 │
 │ │  - ShareService                   │
+│ │  - MealLogService                 │
 │ └────┬──────────────────────────────┘
 │      │
 │ ┌────┴──────────────────────────────┐
@@ -137,14 +138,16 @@ backend/
 │   │   ├── comment.routes.ts            # 评论相关路由
 │   │   ├── share.routes.ts              # 分享相关路由
 │   │   ├── menu.routes.ts               # 菜单相关路由（新增）
-│   │   └── shopping-list.routes.ts      # 购物清单路由（新增）
+│   │   ├── shopping-list.routes.ts      # 购物清单路由（新增）
+│   │   └── meal-log.routes.ts           # 饮食日记路由（新增）
 │   ├── controllers/                     # 控制层
 │   │   ├── dish.controller.ts           # 菜肴控制器
 │   │   ├── user.controller.ts           # 用户控制器
 │   │   ├── comment.controller.ts        # 评论控制器
 │   │   ├── share.controller.ts          # 分享控制器
 │   │   ├── menu.controller.ts           # 菜单控制器（新增）
-│   │   └── shopping-list.controller.ts  # 购物清单控制器（新增）
+│   │   ├── shopping-list.controller.ts  # 购物清单控制器（新增）
+│   │   └── meal-log.controller.ts       # 饮食日记控制器（新增）
 │   ├── services/                        # 业务逻辑层
 │   │   ├── dish.service.ts              # 菜肴服务
 │   │   ├── user.service.ts              # 用户服务
@@ -153,7 +156,8 @@ backend/
 │   │   ├── auth.service.ts              # 认证服务
 │   │   ├── file.service.ts              # 文件上传服务
 │   │   ├── menu.service.ts              # 菜单服务（新增）
-│   │   └── shopping-list.service.ts     # 购物清单服务（新增）
+│   │   ├── shopping-list.service.ts     # 购物清单服务（新增）
+│   │   └── meal-log.service.ts          # 饮食日记服务（新增）
 │   ├── repositories/                    # 数据访问层
 │   │   ├── base.repository.ts           # 基础 Repository
 │   │   ├── dish.repository.ts           # 菜肴仓储
@@ -161,7 +165,8 @@ backend/
 │   │   ├── comment.repository.ts        # 评论仓储
 │   │   ├── share.repository.ts          # 分享仓储
 │   │   ├── menu.repository.ts           # 菜单仓储（新增）
-│   │   └── shopping-list.repository.ts  # 购物清单仓储（新增）
+│   │   ├── shopping-list.repository.ts  # 购物清单仓储（新增）
+│   │   └── meal-log.repository.ts       # 饮食日记仓储（新增）
 │   ├── models/                          # 数据模型
 │   │   ├── dish.model.ts                # 菜肴模型
 │   │   ├── user.model.ts                # 用户模型
@@ -171,6 +176,7 @@ backend/
 │   │   ├── menu-item.model.ts           # 菜单项模型（新增）
 │   │   ├── shopping-list.model.ts       # 购物清单模型（新增）
 │   │   ├── shopping-list-item.model.ts  # 购物清单项模型（新增）
+│   │   ├── meal-log-entry.model.ts      # 饮食日记条目模型（新增）
 │   │   └── index.ts                     # 模型初始化
 │   ├── middleware/                      # 中间件
 │   │   ├── auth.middleware.ts           # 身份验证中间件
@@ -400,10 +406,11 @@ CREATE TABLE menus (
   user_id UUID NOT NULL,
   name VARCHAR(100) NOT NULL,
   description TEXT,
-  tags TEXT[], -- 菜单标签数组
+  tags TEXT[], -- 菜单标签数组（可用标签表达「聚餐」等场景）
   cover_image_url TEXT,
   is_public BOOLEAN DEFAULT false,
   share_count INTEGER DEFAULT 0,
+  version INTEGER NOT NULL DEFAULT 1, -- 乐观锁；PUT 携带 ifMatchVersion（与 dishes 一致）
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   deleted_at TIMESTAMP,
@@ -427,7 +434,7 @@ CREATE TABLE menu_items (
   created_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (menu_id) REFERENCES menus(id) ON DELETE CASCADE,
   FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE CASCADE,
-  UNIQUE (menu_id, dish_id),
+  UNIQUE (menu_id, dish_id), -- 一期：同一菜单内同一道菜仅一行；若产品放宽需移除此约束并改由业务去重策略兜底
   -- index separately
 );
 
@@ -442,6 +449,7 @@ CREATE TABLE shopping_lists (
   user_id UUID NOT NULL,
   menu_id UUID,
   estimated_cost DECIMAL(10,2),
+  version INTEGER NOT NULL DEFAULT 1, -- 清单整体勾选/改量等写操作使用乐观锁
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -473,6 +481,42 @@ CREATE TABLE shopping_list_items (
 
 CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id ON shopping_list_items(shopping_list_id);
 ```
+
+#### 饮食日记条目表 (meal_log_entries)（新增）
+> **与菜单/购物清单解耦**：记录「已吃事实」；`eaten_date` 为用户所选日历日（MVP 不引入复杂时区，按「日期 + 用户」解释即可）。
+
+```sql
+DO $$ BEGIN
+  CREATE TYPE meal_slot AS ENUM ('breakfast', 'lunch', 'dinner', 'snack', 'other');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE meal_log_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,
+  eaten_date DATE NOT NULL,
+  meal_slot meal_slot, -- 可 NULL：表示未区分餐次
+  dish_id UUID, -- 可选；关联时需校验 viewer 对该 dish 的可见性（与列表/详情规则一致）
+  title VARCHAR(200) NOT NULL, -- 展示名：有 dish 时写入快照；无 dish 时为自由文本菜名
+  notes TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  deleted_at TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (dish_id) REFERENCES dishes(id) ON DELETE SET NULL,
+  CHECK (length(trim(title)) >= 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_meal_log_entries_user_eaten_date
+  ON meal_log_entries(user_id, eaten_date)
+  WHERE deleted_at IS NULL;
+```
+
+**写入校验（服务层，建议）**
+- 若 `dish_id` 非空：必须存在且当前用户对该菜**可见**（不可见则 404 或 403，口径与 dish 详情一致）；`title` 可与 `dishes.name` 同步为快照便于列表展示。
+- 若 `dish_id` 为空：`title` 作为自由文本菜名（外食等）。
 
 ### 2.5 后端RESTful API 设计
 
@@ -647,15 +691,15 @@ GET /api/v1/menus
   响应：{ data: [...], total: 100 }  [需要认证]
 
 GET /api/v1/menus/:id
-  响应：{ id, name, description, dishes: [...], ... }
+  响应：{ id, name, description, version, dishes: [...], ... }  -- dishes 为 menu_items 展开，含 sequence
 
 POST /api/v1/menus
   请求：{ name, description, tags: [], coverImage }
   响应：{ id, ... }  [需要认证]
 
 PUT /api/v1/menus/:id
-  请求：{ name, description, tags, coverImage }
-  响应：{ id, ... }  [需要认证，需要是创建者]
+  请求：{ name, description, tags, coverImage, ifMatchVersion }
+  响应：{ id, version, ... }  [需要认证，需要是创建者；冲突 409 VERSION_CONFLICT]
 
 DELETE /api/v1/menus/:id
   响应：{ message: "删除成功" }  [需要认证，需要是创建者]
@@ -672,8 +716,12 @@ DELETE /api/v1/menus/:id/items/:itemId
   响应：{ message: "删除成功" }  [需要认证]
 
 PUT /api/v1/menus/:id/items/:itemId
-  请求：{ servings, notes }
+  请求：{ servings, notes, sequence? }
   响应：{ id, ... }  [需要认证]
+
+PUT /api/v1/menus/:id/items/reorder
+  请求：{ itemIds: string[] }  -- 全量顺序（与 PATCH 部分更新二选一，落地时统一一种）
+  响应：{ ok: true }  [需要认证]
 
 PUT /api/v1/menus/:id/publish
   请求：{ isPublic: true }
@@ -690,7 +738,11 @@ POST /api/v1/shopping-lists
   响应：{ id, items: [], ... }  [需要认证]
 
 GET /api/v1/shopping-lists/:id
-  响应：{ id, items: [...], estimatedCost, ... }  [需要认证]
+  响应：{ id, items: [...], estimatedCost, version, ... }  [需要认证]
+
+PUT /api/v1/shopping-lists/:id
+  请求：{ estimatedCost?, ifMatchVersion }  -- 元信息或批量更新入口（可选；与分项 PUT 并存时约定优先级）
+  响应：{ id, version, ... }  [需要认证]
 
 PUT /api/v1/shopping-lists/:id/items/:itemId
   请求：{ isChecked: true, quantity, notes }
@@ -710,6 +762,32 @@ POST /api/v1/shopping-lists/:id/from-menu/:menuId
   请求：无
   响应：{ id, items: [], ... }  [需要认证]
 ```
+
+#### 饮食日记接口（新增）
+```
+GET /api/v1/meal-logs
+  参数：?from=YYYY-MM-DD&to=YYYY-MM-DD&page=1&limit=50
+  说明：区间包含端点；仅返回当前用户、`deleted_at` 为空的记录
+  响应：{ data: [...], pagination }  [需要认证]
+
+GET /api/v1/meal-logs/:id
+  响应：{ id, eatenDate, mealSlot, dishId, title, notes, version, ... }  [需要认证，且本人]
+
+POST /api/v1/meal-logs
+  请求：{ eatenDate, mealSlot?, dishId?, title, notes? }
+  说明：有 dishId 时建议服务端用菜谱名填充/校正 title 快照；无 dishId 时 title 为自由文本
+  响应：{ id, ... }  [需要认证]
+
+PUT /api/v1/meal-logs/:id
+  请求：{ eatenDate?, mealSlot?, dishId?, title?, notes?, ifMatchVersion }
+  响应：{ id, version, ... }  [需要认证，且本人；冲突 409 VERSION_CONFLICT]
+
+DELETE /api/v1/meal-logs/:id
+  响应：{ message }  [需要认证，且本人；软删，与 dishes 策略一致]
+```
+
+**分页与排序**
+- 默认按 `eaten_date DESC, created_at DESC`；同日多条按创建时间倒序（产品可再调）。
 
 ### 2.6 认证与安全
 
@@ -762,10 +840,14 @@ POST /api/v1/shopping-lists/:id/from-menu/:menuId
 | dish | 评论/评分 | 仅作者且 `comments_enabled=true` | 作者 + 关注者且开关开启 | 登录用户且开关开启 |
 | dish | 收藏/点赞/分享 | 仅作者 | 作者 + 关注者 | 登录用户 |
 | dish | 编辑/删除 | 仅作者 | 仅作者 | 仅作者 |
+| menu / shopping_list | 读写 | 仅创建者（M3-A/B） | 仅创建者 | 仅创建者 |
+| menu | 只读分享 | 后续里程碑：`is_public` 或分享令牌打开后再定义 | | |
+| meal_log_entry | 读写 | 仅本人 | 仅本人 | 仅本人 |
 
 说明：
 - “关注者”指 `follows` 中 `follower_id = viewer` 且 `followee_id = author` 的关系成立。
 - 列表接口返回仅包含 viewer 有权限看到的资源；对于无权限资源，统一返回 404（避免枚举）。
+- **meal_log 关联 dish**：写入/更新时若带 `dish_id`，校验逻辑与「查看 dish 详情」一致；不可见则拒绝（404/403 口径与 dish 统一）。
 
 #### 计数与反刷（MVP，新增）
 - **view_count**：后端在“成功返回详情”后计数；同一用户对同一菜在 30 分钟内重复访问只计 1 次（以 Redis Set/TTL 或 key+TTL 实现）。
@@ -960,7 +1042,7 @@ top-chef-master/
 
 5. sync:queue
    [
-     { id, type: "dish.create|dish.update|comment.upsert|favorite.toggle|like.toggle|menu.update|shoppingList.update", payload, createdAt }
+     { id, type: "dish.create|dish.update|comment.upsert|favorite.toggle|like.toggle|menu.update|shoppingList.update|mealLog.create|mealLog.update", payload, createdAt }
    ]
 
 6. app:settings
@@ -975,7 +1057,7 @@ top-chef-master/
 
 #### 4.4.1 核心思路
 - **服务端为权威**：客户端离线只记录“意图”（operation），在线后按队列顺序重放。
-- **乐观锁**：对可编辑资源（如 `dishes`、`menus`、`shopping_lists`）引入 `version`（整数递增）并保留 `updated_at`。
+- **乐观锁**：对可编辑资源（如 `dishes`、`menus`、`shopping_lists`、`meal_log_entries`）引入 `version`（整数递增）并保留 `updated_at`。
 - **冲突即显式处理**：当客户端基于旧版本提交更新，服务端返回 **409 `VERSION_CONFLICT`**，并携带服务端最新快照与版本。
 
 #### 4.4.2 数据结构与字段约定
@@ -1337,18 +1419,22 @@ npm run build:weapp
 - AI 推荐菜肴
 - 视频教程集成
 
-### 13.4 菜单和购物清单高级功能（Phase 2-3）
-- **AI 菜单生成**
+### 13.4 菜单、购物清单与饮食日记（分阶段对齐产品文档）
+- **M3-A（已实现方向）**：`menus` + `menu_items` CRUD、从菜谱加入、排序、`ifMatchVersion` 与菜单 `version` 字段（与 `001_init_schema.sql` 对齐）。
+- **M3-B**：`shopping_lists` 从菜单生成、条目勾选与编辑、清单级乐观锁。
+- **M4**：`meal_log_entries` 与 `/api/v1/meal-logs`；新建迁移脚本（如 `002_meal_log_entries.sql`）落库，勿与菜单混表。
+
+- **AI 菜单生成（推迟）**
   - 基于用户偏好和季节推荐菜单
   - 根据预算自动生成菜单
   - 根据食材库存智能推荐菜单
 
-- **购物清单智能优化**
+- **购物清单智能优化（推迟）**
   - 与本地超市价格展示对接
   - 购物路线优化（按超市分布）
   - 自动去重和价格比较
 
-- **菜单分享和协作**
+- **菜单分享和协作（推迟）**
   - 多人协作编辑菜单
   - 菜单版本管理和历史记录
   - 家庭用户共享菜单
