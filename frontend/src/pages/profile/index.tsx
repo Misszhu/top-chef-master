@@ -1,11 +1,13 @@
-import { View, Text } from '@tarojs/components'
+import { View, Text, Image, ScrollView } from '@tarojs/components'
 import { AtList, AtListItem, AtButton, AtAvatar, AtIcon } from 'taro-ui'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import Taro from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { RootState } from '../../store'
 import { setUserInfo, setToken, logout } from '../../store/slices/userSlice'
 import { login, getProfile } from '../../services/user'
+import { getDishes } from '../../services/dish'
+import { Dish } from '../../types/dish'
 import { isAxiosStatus } from '../../utils/api-error'
 import './index.scss'
 
@@ -13,6 +15,34 @@ export default function Profile() {
   const dispatch = useDispatch()
   const { userInfo, token } = useSelector((state: RootState) => state.user)
   const [activeTab, setActiveTab] = useState<'recipes' | 'works'>('recipes')
+  const [myDishes, setMyDishes] = useState<Dish[]>([])
+  const [myDishesLoading, setMyDishesLoading] = useState(false)
+
+  const fetchMyDishes = useCallback(async () => {
+    const t = token || Taro.getStorageSync('token')
+    const uid = userInfo?.id || Taro.getStorageSync('userInfo')?.id
+    if (!t || !uid) {
+      setMyDishes([])
+      return
+    }
+    setMyDishesLoading(true)
+    try {
+      const list = await getDishes({ user_id: uid, limit: 50, page: 1 })
+      setMyDishes(Array.isArray(list) ? list : [])
+    } catch (e) {
+      console.error('fetch my dishes:', e)
+      setMyDishes([])
+    } finally {
+      setMyDishesLoading(false)
+    }
+  }, [token, userInfo?.id])
+
+  const fetchMyDishesRef = useRef(fetchMyDishes)
+  fetchMyDishesRef.current = fetchMyDishes
+
+  useDidShow(() => {
+    void fetchMyDishesRef.current()
+  })
 
   const handleLogin = async () => {
     try {
@@ -83,6 +113,10 @@ export default function Profile() {
 
     syncProfile()
   }, [])
+
+  useEffect(() => {
+    void fetchMyDishes()
+  }, [fetchMyDishes])
 
   return (
     <View className='profile-page'>
@@ -157,7 +191,7 @@ export default function Profile() {
               className={`works-tab-item ${activeTab === 'recipes' ? 'active' : ''}`}
               onClick={() => setActiveTab('recipes')}
             >
-              <Text className='tab-text'>菜谱 0</Text>
+              <Text className='tab-text'>菜谱 {myDishes.length}</Text>
             </View>
             <View
               className={`works-tab-item ${activeTab === 'works' ? 'active' : ''}`}
@@ -167,26 +201,56 @@ export default function Profile() {
             </View>
           </View>
 
-          <View className='works-empty'>
-            <Text className='empty-copy'>
-              {activeTab === 'recipes'
-                ? '创建菜谱的人是厨房里的天使'
-                : '上传你的作品，记录每一次下厨成就'}
-            </Text>
-            <AtButton
-              type='primary'
-              className='create-btn'
-              onClick={() => {
-                if (activeTab === 'recipes') {
-                  Taro.navigateTo({ url: '/pages/add-dish/index' })
-                } else {
-                  Taro.showToast({ title: '作品发布开发中', icon: 'none' })
-                }
-              }}
-            >
-              {activeTab === 'recipes' ? '开始创建第一道菜谱' : '开始发布第一条作品'}
-            </AtButton>
-          </View>
+          {activeTab === 'recipes' && myDishesLoading && myDishes.length === 0 ? (
+            <View className='works-loading'>
+              <Text className='works-loading-text'>加载中...</Text>
+            </View>
+          ) : activeTab === 'recipes' && myDishes.length > 0 ? (
+            <ScrollView scrollY className='works-dish-scroll'>
+              <View className='works-dish-grid'>
+                {myDishes.map((dish) => (
+                  <View
+                    key={dish.id}
+                    className='works-dish-card'
+                    onClick={() => Taro.navigateTo({ url: `/pages/dish-detail/index?id=${dish.id}` })}
+                  >
+                    <Image
+                      className='works-dish-thumb'
+                      src={dish.image_url || 'https://via.placeholder.com/400'}
+                      mode='aspectFill'
+                    />
+                    <View className='works-dish-info'>
+                      <Text className='works-dish-title'>{dish.name}</Text>
+                      <Text className='works-dish-desc'>
+                        {dish.description != null ? dish.description : ''}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </ScrollView>
+          ) : (
+            <View className='works-empty'>
+              <Text className='empty-copy'>
+                {activeTab === 'recipes'
+                  ? '创建菜谱的人是厨房里的天使'
+                  : '上传你的作品，记录每一次下厨成就'}
+              </Text>
+              <AtButton
+                type='primary'
+                className='create-btn'
+                onClick={() => {
+                  if (activeTab === 'recipes') {
+                    Taro.navigateTo({ url: '/pages/add-dish/index' })
+                  } else {
+                    Taro.showToast({ title: '作品发布开发中', icon: 'none' })
+                  }
+                }}
+              >
+                {activeTab === 'recipes' ? '开始创建第一道菜谱' : '开始发布第一条作品'}
+              </AtButton>
+            </View>
+          )}
         </View>
       )}
     </View>

@@ -1,8 +1,8 @@
-import { View, Text, Input, Textarea } from '@tarojs/components'
+import { View, Text, Input, Textarea, Image } from '@tarojs/components'
 import { AtButton, AtSwitch, AtActivityIndicator } from 'taro-ui'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Taro, { useRouter } from '@tarojs/taro'
-import { getDishById, updateDish } from '../../services/dish'
+import { getDishById, updateDish, uploadDishCover } from '../../services/dish'
 import type { Dish, DishCreateDTO } from '../../types/dish'
 import { getApiErrorCode, getApiErrorMessage } from '../../utils/api-error'
 import './index.scss'
@@ -30,6 +30,42 @@ export default function EditDish() {
   const [ingredients, setIngredients] = useState<IngredientRow[]>([emptyIng()])
   const [steps, setSteps] = useState<StepRow[]>([emptyStep()])
   const [submitting, setSubmitting] = useState(false)
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [coverUploading, setCoverUploading] = useState(false)
+
+  const applyDishToForm = useCallback((d: Dish) => {
+    setDishVersion(d.version)
+    setName(d.name)
+    setDescription(d.description || '')
+    setDifficulty((d.difficulty as 'easy' | 'medium' | 'hard') || 'easy')
+    setCookingTime(String(d.cooking_time != null ? d.cooking_time : ''))
+    setServings(String(d.servings != null ? d.servings : ''))
+    setTagsStr((d.tags || []).join(', '))
+    setVisibility(d.visibility)
+    setCommentsEnabled(d.comments_enabled)
+    setImageUrl(d.image_url || null)
+    if (d.ingredients && d.ingredients.length) {
+      setIngredients(
+        d.ingredients.map((ing) => ({
+          name: ing.name,
+          quantity: ing.quantity != null ? String(ing.quantity) : '',
+          unit: ing.unit || '',
+        }))
+      )
+    } else {
+      setIngredients([emptyIng()])
+    }
+    if (d.steps && d.steps.length) {
+      setSteps(
+        d.steps
+          .slice()
+          .sort((a, b) => a.step_number - b.step_number)
+          .map((s) => ({ description: s.description }))
+      )
+    } else {
+      setSteps([emptyStep()])
+    }
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -40,27 +76,7 @@ export default function EditDish() {
       setLoading(true)
       try {
         const d: Dish = await getDishById(id as string)
-        setDishVersion(d.version)
-        setName(d.name)
-        setDescription(d.description || '')
-        setDifficulty((d.difficulty as 'easy' | 'medium' | 'hard') || 'easy')
-        setCookingTime(String(d.cooking_time != null ? d.cooking_time : ''))
-        setServings(String(d.servings != null ? d.servings : ''))
-        setTagsStr((d.tags || []).join(', '))
-        setVisibility(d.visibility)
-        setCommentsEnabled(d.comments_enabled)
-        if (d.ingredients && d.ingredients.length) {
-          setIngredients(
-            d.ingredients.map((ing) => ({
-              name: ing.name,
-              quantity: ing.quantity != null ? String(ing.quantity) : '',
-              unit: ing.unit || '',
-            }))
-          )
-        }
-        if (d.steps && d.steps.length) {
-          setSteps(d.steps.slice().sort((a, b) => a.step_number - b.step_number).map((s) => ({ description: s.description })))
-        }
+        applyDishToForm(d)
       } catch {
         Taro.showToast({ title: '加载失败', icon: 'error' })
         setTimeout(() => Taro.navigateBack(), 500)
@@ -69,7 +85,73 @@ export default function EditDish() {
       }
     }
     load()
-  }, [id])
+  }, [id, applyDishToForm])
+
+  const pickTempImagePath = async (): Promise<string | null> => {
+    try {
+      const r = await Taro.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['album', 'camera'],
+      })
+      const p = r.tempFiles?.[0]?.tempFilePath
+      if (p) return p
+    } catch {
+      // 部分端不支持 chooseMedia 时降级
+    }
+    try {
+      const r = await Taro.chooseImage({ count: 1, sourceType: ['album', 'camera'] })
+      return r.tempFilePaths?.[0] ?? null
+    } catch (e: any) {
+      if (String(e?.errMsg || '').includes('cancel')) return null
+      throw e
+    }
+  }
+
+  const handleUploadCover = async () => {
+    if (!id) return
+    let path: string | null
+    try {
+      path = await pickTempImagePath()
+    } catch {
+      Taro.showToast({ title: '无法选择图片', icon: 'none' })
+      return
+    }
+    if (!path) return
+
+    setCoverUploading(true)
+    Taro.showLoading({ title: '上传中...' })
+    try {
+      const updated = await uploadDishCover(id as string, path, dishVersion)
+      setImageUrl(updated.image_url || null)
+      setDishVersion(updated.version)
+      Taro.showToast({ title: '封面已更新', icon: 'success' })
+    } catch (err: any) {
+      const code = getApiErrorCode(err)
+      if (code === 'VERSION_CONFLICT') {
+        Taro.showModal({
+          title: '内容已在其他端更新',
+          content: '是否重新加载最新内容？当前选择的图片未上传。',
+          success: async (res) => {
+            if (res.confirm && id) {
+              try {
+                const d = await getDishById(id as string)
+                applyDishToForm(d)
+                Taro.showToast({ title: '已刷新', icon: 'none' })
+              } catch {
+                Taro.showToast({ title: '刷新失败', icon: 'none' })
+              }
+            }
+          },
+        })
+      } else {
+        Taro.showToast({ title: getApiErrorMessage(err, '上传失败'), icon: 'none' })
+      }
+    } finally {
+      Taro.hideLoading()
+      setCoverUploading(false)
+    }
+  }
 
   const updateIng = (i: number, patch: Partial<IngredientRow>) => {
     setIngredients((prev) => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
@@ -120,6 +202,7 @@ export default function EditDish() {
       tags,
       visibility,
       comments_enabled: commentsEnabled,
+      ...(imageUrl ? { image_url: imageUrl } : {}),
       ingredients: ings.map((ing, i) => ({ ...ing, sequence: i + 1 })),
       steps: st.map((desc, i) => ({
         step_number: i + 1,
@@ -144,32 +227,7 @@ export default function EditDish() {
             if (res.confirm && id) {
               try {
                 const d = await getDishById(id as string)
-                setDishVersion(d.version)
-                setName(d.name)
-                setDescription(d.description || '')
-                setDifficulty((d.difficulty as 'easy' | 'medium' | 'hard') || 'easy')
-                setCookingTime(String(d.cooking_time != null ? d.cooking_time : ''))
-                setServings(String(d.servings != null ? d.servings : ''))
-                setTagsStr((d.tags || []).join(', '))
-                setVisibility(d.visibility)
-                setCommentsEnabled(d.comments_enabled)
-                if (d.ingredients && d.ingredients.length) {
-                  setIngredients(
-                    d.ingredients.map((ing) => ({
-                      name: ing.name,
-                      quantity: ing.quantity != null ? String(ing.quantity) : '',
-                      unit: ing.unit || '',
-                    }))
-                  )
-                }
-                if (d.steps && d.steps.length) {
-                  setSteps(
-                    d.steps
-                      .slice()
-                      .sort((a, b) => a.step_number - b.step_number)
-                      .map((s) => ({ description: s.description }))
-                  )
-                }
+                applyDishToForm(d)
                 Taro.showToast({ title: '已刷新', icon: 'none' })
               } catch {
                 Taro.showToast({ title: '刷新失败', icon: 'none' })
@@ -195,6 +253,27 @@ export default function EditDish() {
 
   return (
     <View className='dish-form-page'>
+      <View className='field cover-field'>
+        <Text className='label'>封面图</Text>
+        <View className='cover-row'>
+          <View className='cover-preview-wrap'>
+            {imageUrl ? (
+              <Image className='cover-preview' src={imageUrl} mode='aspectFill' />
+            ) : (
+              <View className='cover-placeholder'>
+                <Text className='cover-placeholder-text'>暂无封面</Text>
+              </View>
+            )}
+          </View>
+          <View className='cover-actions'>
+            <AtButton size='small' loading={coverUploading} onClick={handleUploadCover}>
+              {imageUrl ? '更换封面' : '上传封面'}
+            </AtButton>
+            <Text className='cover-hint'>支持相册或拍照，jpg/png/webp/gif，最大 5MB</Text>
+          </View>
+        </View>
+      </View>
+
       <View className='field'>
         <Text className='label'>菜名 *</Text>
         <Input className='input' value={name} onInput={(e) => setName(e.detail.value)} placeholder='例如：红烧肉' />

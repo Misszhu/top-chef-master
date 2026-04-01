@@ -1,1 +1,56 @@
 @import '../add-dish/index.scss';
+
+.cover-field {
+  .cover-row {
+    display: flex;
+    gap: 24rpx;
+    align-items: flex-start;
+  }
+
+  .cover-preview-wrap {
+    flex-shrink: 0;
+    width: 200rpx;
+    height: 200rpx;
+    border-radius: 16rpx;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1rpx solid var(--tc-border);
+  }
+
+  .cover-preview {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .cover-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16rpx;
+    box-sizing: border-box;
+  }
+
+  .cover-placeholder-text {
+    font-size: 22rpx;
+    color: var(--tc-muted);
+    text-align: center;
+  }
+
+  .cover-actions {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12rpx;
+    padding-top: 8rpx;
+  }
+
+  .cover-hint {
+    font-size: 20rpx;
+    color: var(--tc-muted);
+    line-height: 1.5;
+  }
+}

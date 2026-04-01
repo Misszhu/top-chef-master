@@ -607,9 +607,11 @@ PUT /api/v1/dishes/:id
 DELETE /api/v1/dishes/:id
   响应：{ message: "删除成功" }  [需要认证，需要是创建者]
 
-POST /api/v1/dishes/:id/image/upload
-  请求：FormData（image 文件）
-  响应：{ imageUrl: "..." }  [需要认证]
+POST /api/v1/dishes/:id/image
+  请求：multipart/form-data，字段 `file`（图片）；可选 `ifMatchVersion`（与 PUT 乐观锁一致）
+  响应：`{ data: dish }`（含更新后的 `image_url`、`version`）  [需要认证，且为菜谱创建者]
+
+  > **TODO（存储演进 / 现状说明）**：当前实现将封面写入**服务端本机** `uploads/dishes/`（`app.use('/uploads', static ...)` 提供访问）。**进程重启不丢文件**；若部署在**无持久卷的容器**、**水平多实例**或**换机发布**，则会出现文件缺失或与 DB 中 URL 不一致。**后续应迁移到对象存储**（OSS/COS/S3 等），由存储返回稳定公网 URL（可叠加 CDN），必要时删除本地上传实现或仅作本地开发兜底。
 
 POST /api/v1/dishes/:id/like
   响应：{ liked: true, likeCount: 123 } [需要认证]
@@ -1242,7 +1244,8 @@ export interface UIState {
 
 ### 7.2 图片处理
 - **上传方式**：选择本地图库或拍照
-- **存储方式**：客户端压缩后上传到对象存储（OSS/COS），保存 URL 到后端
+- **存储方式（目标架构）**：客户端压缩后上传到**对象存储**（OSS/COS），保存 URL 到后端
+- **存储方式（当前实现，待演进）**：服务端接收 `POST /api/v1/dishes/:id/image` 后写入本机 **`uploads/dishes/`**，`image_url` 指向同源 `/uploads/...`。**TODO**：迁移至对象存储，避免无持久卷容器与多实例不一致；本地磁盘方案仅适合单机开发或小规模固定机部署。
 - **优化策略**：生成缩略图（列表用）与原图（详情用）；宽度建议不超过 1080px
 - **大小限制**：单图建议 < 1MB（MVP），超限提示用户重新裁剪/压缩
 

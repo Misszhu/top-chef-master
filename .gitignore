@@ -35,4 +35,7 @@ yarn-error.log*
 
 # Other
 .swc
+
+# Local uploaded dish images (backend)
+backend/uploads/
 frontend/.swc

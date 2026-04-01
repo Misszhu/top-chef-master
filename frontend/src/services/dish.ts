@@ -1,4 +1,6 @@
+import Taro from '@tarojs/taro';
 import request from '../utils/request';
+import { getApiOrigin } from '../utils/api-origin';
 import { Dish, DishCreateDTO, DishQueryFilters } from '../types/dish';
 
 export const getDishes = async (filters: DishQueryFilters = {}): Promise<Dish[]> => {
@@ -15,6 +17,37 @@ export const createDish = async (dishData: DishCreateDTO): Promise<Dish> => {
   const response = await request.post('/dishes', dishData);
   return response.data.data;
 };
+
+export const uploadDishCover = (
+  dishId: string,
+  tempFilePath: string,
+  ifMatchVersion: number
+): Promise<Dish> => {
+  return new Promise((resolve, reject) => {
+    const token = Taro.getStorageSync('token')
+    Taro.uploadFile({
+      url: `${getApiOrigin()}/api/v1/dishes/${dishId}/image`,
+      filePath: tempFilePath,
+      name: 'file',
+      header: token ? { Authorization: `Bearer ${token}` } : {},
+      formData: { ifMatchVersion: String(ifMatchVersion) },
+      success: (res) => {
+        try {
+          const body = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+          if (res.statusCode >= 200 && res.statusCode < 300 && body?.data) {
+            resolve(body.data as Dish)
+            return
+          }
+          const errMsg = body?.error?.message || '上传失败'
+          reject(Object.assign(new Error(errMsg), { response: { status: res.statusCode, data: body } }))
+        } catch (e) {
+          reject(e)
+        }
+      },
+      fail: (err) => reject(err),
+    })
+  })
+}
 
 export const updateDish = async (id: string, dishData: Partial<DishCreateDTO>): Promise<Dish> => {
   const response = await request.put(`/dishes/${id}`, dishData);

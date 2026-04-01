@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import fs from 'fs/promises';
 import { dishService } from '../services/dish.service';
 import { DishQueryFilters } from '../models/dish.model';
 import { sendError, sendPagination, sendSuccess } from '../utils/api-response';
@@ -61,6 +62,59 @@ export class DishController {
     } catch (error) {
       console.error('Error fetching dish detail:', error);
       return sendError(res, 500, 'INTERNAL_ERROR', '获取详情失败');
+    }
+  }
+
+  async uploadDishCover(req: Request, res: Response) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return sendError(res, 401, 'AUTH_REQUIRED', '需要登录');
+    }
+
+    const file = (req as Request & { file?: Express.Multer.File }).file;
+    if (!file) {
+      return sendError(res, 400, 'VALIDATION_ERROR', '请选择图片文件');
+    }
+
+    const dishIdParam = req.params.id;
+    const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
+    if (!dishId) {
+      await fs.unlink(file.path).catch(() => undefined);
+      return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
+    }
+
+    const rawVer = req.body?.ifMatchVersion;
+    let ifMatchVersion: number | undefined;
+    if (rawVer !== undefined && rawVer !== '') {
+      const n = parseInt(String(rawVer), 10);
+      if (Number.isNaN(n)) {
+        await fs.unlink(file.path).catch(() => undefined);
+        return sendError(res, 400, 'VALIDATION_ERROR', 'ifMatchVersion 无效');
+      }
+      ifMatchVersion = n;
+    }
+
+    const origin =
+      process.env.API_PUBLIC_ORIGIN?.replace(/\/$/, '') ||
+      `${req.protocol}://${req.get('host') || 'localhost'}`;
+    const image_url = `${origin}/uploads/dishes/${file.filename}`;
+
+    const cleanupFile = () => fs.unlink(file.path).catch(() => undefined);
+
+    try {
+      const dish = await dishService.updateDish(dishId, userId, { image_url }, ifMatchVersion);
+      if (!dish) {
+        await cleanupFile();
+        return sendError(res, 404, 'NOT_FOUND', '菜谱不存在或无权限访问');
+      }
+      return sendSuccess(res, dish);
+    } catch (error: any) {
+      await cleanupFile();
+      if (error instanceof ApiError) {
+        return sendError(res, error.status, error.code, error.message, error.details);
+      }
+      console.error('Error uploading dish cover:', error);
+      return sendError(res, 500, 'INTERNAL_ERROR', '上传失败');
     }
   }
 
