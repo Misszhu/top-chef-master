@@ -2,16 +2,15 @@ import { View, Text, Input, Textarea } from '@tarojs/components'
 import { AtButton, AtSwitch } from 'taro-ui'
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
+import RecipeStepsEditor, { emptyRecipeStep } from '../../components/recipe-steps-editor'
 import { createDish } from '../../services/dish'
 import type { DishCreateDTO } from '../../types/dish'
 import { getApiErrorMessage } from '../../utils/api-error'
 import './index.scss'
 
 type IngredientRow = { name: string; quantity: string; unit: string }
-type StepRow = { description: string }
 
 const emptyIng = (): IngredientRow => ({ name: '', quantity: '', unit: '' })
-const emptyStep = (): StepRow => ({ description: '' })
 
 export default function AddDish() {
   const [name, setName] = useState('')
@@ -23,15 +22,11 @@ export default function AddDish() {
   const [visibility, setVisibility] = useState<'private' | 'followers' | 'public'>('private')
   const [commentsEnabled, setCommentsEnabled] = useState(true)
   const [ingredients, setIngredients] = useState<IngredientRow[]>([emptyIng()])
-  const [steps, setSteps] = useState<StepRow[]>([emptyStep()])
+  const [steps, setSteps] = useState([emptyRecipeStep()])
   const [submitting, setSubmitting] = useState(false)
 
   const updateIng = (i: number, patch: Partial<IngredientRow>) => {
     setIngredients((prev) => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
-  }
-
-  const updateStep = (i: number, desc: string) => {
-    setSteps((prev) => prev.map((row, idx) => (idx === i ? { description: desc } : row)))
   }
 
   const handleSubmit = async () => {
@@ -52,9 +47,9 @@ export default function AddDish() {
       Taro.showToast({ title: '至少添加一种食材', icon: 'none' })
       return
     }
-    const st = steps.map((s) => s.description.trim()).filter(Boolean)
-    if (st.length < 1) {
-      Taro.showToast({ title: '至少填写一个步骤', icon: 'none' })
+    const validSteps = steps.filter((s) => s.description.trim() || s.image_url)
+    if (validSteps.length < 1) {
+      Taro.showToast({ title: '至少添加一个步骤（说明或步骤图）', icon: 'none' })
       return
     }
     const ct = parseInt(cookingTime, 10)
@@ -75,9 +70,10 @@ export default function AddDish() {
       visibility,
       comments_enabled: commentsEnabled,
       ingredients: ings.map((ing, i) => ({ ...ing, sequence: i + 1 })),
-      steps: st.map((desc, i) => ({
+      steps: validSteps.map((s, i) => ({
         step_number: i + 1,
-        description: desc,
+        description: s.description.trim() || '',
+        ...(s.image_url ? { image_url: s.image_url } : {}),
       })),
     }
 
@@ -226,21 +222,7 @@ export default function AddDish() {
       </View>
 
       <View className='sub-block'>
-        <Text className='sub-title'>步骤 *</Text>
-        {steps.map((row, i) => (
-          <View key={i} className='field'>
-            <Text className='label'>步骤 {i + 1}</Text>
-            <Textarea
-              className='textarea'
-              value={row.description}
-              onInput={(e) => updateStep(i, e.detail.value)}
-              placeholder='这一步怎么做…'
-            />
-          </View>
-        ))}
-        <AtButton size='small' onClick={() => setSteps((p) => [...p, emptyStep()])}>
-          添加步骤
-        </AtButton>
+        <RecipeStepsEditor steps={steps} onChange={setSteps} />
       </View>
 
       <View className='footer-actions'>

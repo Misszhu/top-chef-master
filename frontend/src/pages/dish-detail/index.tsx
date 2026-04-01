@@ -1,8 +1,8 @@
 import { View, Text, Image, ScrollView, Textarea } from '@tarojs/components'
 import { AtTag, AtDivider, AtActivityIndicator, AtList, AtListItem, AtButton } from 'taro-ui'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import Taro, { useRouter } from '@tarojs/taro'
+import Taro, { useDidShow, useRouter } from '@tarojs/taro'
 import { RootState } from '../../store'
 import { setCurrentDish, setLoading, setError } from '../../store/slices/dishSlice'
 import { getDishById, likeDish, unlikeDish } from '../../services/dish'
@@ -51,6 +51,8 @@ export default function DishDetail() {
   const dispatch = useDispatch()
   const router = useRouter()
   const { id } = router.params
+  const idRef = useRef(id)
+  idRef.current = id
   const { currentDish, loading } = useSelector((state: RootState) => state.dish)
   const { token, userInfo } = useSelector((state: RootState) => state.user)
 
@@ -89,12 +91,14 @@ export default function DishDetail() {
     }
   }, [id])
 
-  useEffect(() => {
-    const fetchDetail = async () => {
-      if (!id) return
+  // 栈内返回（如编辑页 navigateBack）时组件常仍挂载，仅依赖 [id] 的 effect 不会重跑，需在每次页面显示时拉最新数据
+  useDidShow(() => {
+    const dishId = idRef.current
+    if (!dishId) return
+    void (async () => {
       dispatch(setLoading(true))
       try {
-        const data = await getDishById(id as string)
+        const data = await getDishById(dishId as string)
         dispatch(setCurrentDish(data))
         setLikeCount(data.like_count)
         setLiked(!!data.liked_by_me)
@@ -104,10 +108,10 @@ export default function DishDetail() {
       } finally {
         dispatch(setLoading(false))
       }
-    }
+    })()
+  })
 
-    fetchDetail()
-
+  useEffect(() => {
     return () => {
       dispatch(setCurrentDish(null))
     }

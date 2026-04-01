@@ -1,0 +1,164 @@
+.recipe-steps-editor {
+  .steps-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16rpx;
+    margin-bottom: 8rpx;
+    flex-wrap: wrap;
+  }
+
+  .steps-section-title {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: var(--tc-text);
+  }
+
+  .steps-head-actions {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    flex-shrink: 0;
+  }
+
+  .steps-chip {
+    font-size: 22rpx;
+    padding: 8rpx 18rpx;
+    border-radius: 999rpx;
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(31, 31, 31, 0.55);
+    border: 1rpx solid var(--tc-border);
+  }
+
+  .steps-chip.active {
+    background: rgba(255, 153, 0, 0.12);
+    color: var(--tc-primary);
+    border-color: rgba(255, 153, 0, 0.35);
+  }
+
+  .steps-chip.steps-chip--disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .steps-order-hint {
+    font-size: 20rpx;
+    color: var(--tc-muted);
+    margin-bottom: 16rpx;
+    line-height: 1.4;
+  }
+
+  .step-card {
+    margin-bottom: 28rpx;
+    padding-bottom: 8rpx;
+    border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
+
+    &:last-of-type {
+      border-bottom: none;
+    }
+
+    .label {
+      font-size: 26rpx;
+      color: var(--tc-text);
+      margin-bottom: 12rpx;
+      display: block;
+    }
+  }
+
+  .step-image-box {
+    position: relative;
+    width: 100%;
+    height: 280rpx;
+    border-radius: 16rpx;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1rpx dashed rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+  }
+
+  .step-image-box--portrait {
+    height: 400rpx;
+  }
+
+  .step-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24rpx;
+    box-sizing: border-box;
+  }
+
+  .step-image-plus {
+    font-size: 30rpx;
+    color: rgba(31, 31, 31, 0.45);
+    margin-bottom: 12rpx;
+  }
+
+  .step-image-hint {
+    font-size: 22rpx;
+    color: rgba(31, 31, 31, 0.38);
+    text-align: center;
+    line-height: 1.45;
+  }
+
+  .step-image-full {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .step-image-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24rpx;
+    color: var(--tc-muted);
+  }
+
+  .step-remove-img {
+    font-size: 22rpx;
+    color: rgba(255, 99, 71, 0.95);
+    margin: 10rpx 0 12rpx;
+    display: inline-block;
+  }
+
+  .step-textarea {
+    min-height: 140rpx;
+    padding: 20rpx;
+    background: var(--tc-card);
+    border-radius: 12rpx;
+    font-size: 28rpx;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12rpx;
+  }
+
+  .step-reorder {
+    display: flex;
+    gap: 24rpx;
+  }
+
+  .step-reorder-btn {
+    font-size: 24rpx;
+    color: var(--tc-primary);
+  }
+
+  .step-reorder-btn--muted {
+    color: rgba(31, 31, 31, 0.22);
+    pointer-events: none;
+  }
+
+  .steps-bottom-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+    margin-top: 8rpx;
+    align-items: center;
+  }
+}

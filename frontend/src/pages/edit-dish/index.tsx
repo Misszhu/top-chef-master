@@ -2,16 +2,15 @@ import { View, Text, Input, Textarea, Image } from '@tarojs/components'
 import { AtButton, AtSwitch, AtActivityIndicator } from 'taro-ui'
 import { useCallback, useEffect, useState } from 'react'
 import Taro, { useRouter } from '@tarojs/taro'
+import RecipeStepsEditor, { emptyRecipeStep } from '../../components/recipe-steps-editor'
 import { getDishById, updateDish, uploadDishCover } from '../../services/dish'
 import type { Dish, DishCreateDTO } from '../../types/dish'
 import { getApiErrorCode, getApiErrorMessage } from '../../utils/api-error'
 import './index.scss'
 
 type IngredientRow = { name: string; quantity: string; unit: string }
-type StepRow = { description: string }
 
 const emptyIng = (): IngredientRow => ({ name: '', quantity: '', unit: '' })
-const emptyStep = (): StepRow => ({ description: '' })
 
 export default function EditDish() {
   const router = useRouter()
@@ -28,7 +27,7 @@ export default function EditDish() {
   const [visibility, setVisibility] = useState<'private' | 'followers' | 'public'>('private')
   const [commentsEnabled, setCommentsEnabled] = useState(true)
   const [ingredients, setIngredients] = useState<IngredientRow[]>([emptyIng()])
-  const [steps, setSteps] = useState<StepRow[]>([emptyStep()])
+  const [steps, setSteps] = useState([emptyRecipeStep()])
   const [submitting, setSubmitting] = useState(false)
   const [imageUrl, setImageUrl] = useState<string | null>(null)
   const [coverUploading, setCoverUploading] = useState(false)
@@ -60,10 +59,13 @@ export default function EditDish() {
         d.steps
           .slice()
           .sort((a, b) => a.step_number - b.step_number)
-          .map((s) => ({ description: s.description }))
+          .map((s) => ({
+            description: s.description,
+            image_url: s.image_url || null,
+          }))
       )
     } else {
-      setSteps([emptyStep()])
+      setSteps([emptyRecipeStep()])
     }
   }, [])
 
@@ -157,10 +159,6 @@ export default function EditDish() {
     setIngredients((prev) => prev.map((row, idx) => (idx === i ? { ...row, ...patch } : row)))
   }
 
-  const updateStep = (i: number, desc: string) => {
-    setSteps((prev) => prev.map((row, idx) => (idx === i ? { description: desc } : row)))
-  }
-
   const handleSubmit = async () => {
     if (!id) return
     const n = name.trim()
@@ -180,9 +178,9 @@ export default function EditDish() {
       Taro.showToast({ title: '至少添加一种食材', icon: 'none' })
       return
     }
-    const st = steps.map((s) => s.description.trim()).filter(Boolean)
-    if (st.length < 1) {
-      Taro.showToast({ title: '至少填写一个步骤', icon: 'none' })
+    const validSteps = steps.filter((s) => s.description.trim() || s.image_url)
+    if (validSteps.length < 1) {
+      Taro.showToast({ title: '至少添加一个步骤（说明或步骤图）', icon: 'none' })
       return
     }
     const ct = parseInt(cookingTime, 10)
@@ -204,9 +202,10 @@ export default function EditDish() {
       comments_enabled: commentsEnabled,
       ...(imageUrl ? { image_url: imageUrl } : {}),
       ingredients: ings.map((ing, i) => ({ ...ing, sequence: i + 1 })),
-      steps: st.map((desc, i) => ({
+      steps: validSteps.map((s, i) => ({
         step_number: i + 1,
-        description: desc,
+        description: s.description.trim() || '',
+        ...(s.image_url ? { image_url: s.image_url } : {}),
       })),
       ifMatchVersion: dishVersion,
     }
@@ -403,21 +402,7 @@ export default function EditDish() {
       </View>
 
       <View className='sub-block'>
-        <Text className='sub-title'>步骤 *</Text>
-        {steps.map((row, i) => (
-          <View key={i} className='field'>
-            <Text className='label'>步骤 {i + 1}</Text>
-            <Textarea
-              className='textarea'
-              value={row.description}
-              onInput={(e) => updateStep(i, e.detail.value)}
-              placeholder='这一步怎么做…'
-            />
-          </View>
-        ))}
-        <AtButton size='small' onClick={() => setSteps((p) => [...p, emptyStep()])}>
-          添加步骤
-        </AtButton>
+        <RecipeStepsEditor steps={steps} onChange={setSteps} />
       </View>
 
       <View className='footer-actions'>
