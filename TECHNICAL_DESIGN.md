@@ -522,9 +522,13 @@ CREATE INDEX IF NOT EXISTS idx_meal_log_entries_user_eaten_date
 
 #### 2.5.1 统一响应结构与错误码规范（新增）
 
-**成功响应（建议）**
+**成功响应（统一）**  
+`statusCode` 与 HTTP 状态码一致；`msg` 为简短说明（默认 `ok`）；业务数据在 `data`；`meta` 固定带 `requestId`、`ts`，可扩展其它字段。
+
 ```json
 {
+  "statusCode": 200,
+  "msg": "ok",
   "data": {},
   "meta": {
     "requestId": "req_...",
@@ -533,21 +537,32 @@ CREATE INDEX IF NOT EXISTS idx_meal_log_entries_user_eaten_date
 }
 ```
 
-**分页响应（建议）**
+**分页响应（统一）**  
+列表仍在 `data`（数组）；分页在 `meta.pagination`。
+
 ```json
 {
+  "statusCode": 200,
+  "msg": "ok",
   "data": [],
-  "pagination": { "page": 1, "limit": 20, "total": 100 },
-  "meta": { "requestId": "req_...", "ts": 1710230400000 }
+  "meta": {
+    "requestId": "req_...",
+    "ts": 1710230400000,
+    "pagination": { "page": 1, "limit": 20, "total": 100 }
+  }
 }
 ```
 
-**错误响应（统一）**
+**错误响应（统一）**  
+`msg` 为面向用户/前端的说明文案；机器可读码在 `error.code`；`data` 恒为 `null`。
+
 ```json
 {
+  "statusCode": 401,
+  "msg": "需要登录",
+  "data": null,
   "error": {
     "code": "AUTH_REQUIRED",
-    "message": "需要登录",
     "details": {},
     "requestId": "req_..."
   }

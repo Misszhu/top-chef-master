@@ -1,4 +1,7 @@
 import type { Response } from 'express';
+import type { ApiMeta, ApiSuccessEnvelope, ApiErrorEnvelope } from '../types/api-envelope';
+
+export type { ApiMeta, ApiSuccessEnvelope, ApiErrorEnvelope };
 
 export type ErrorCode =
   | 'AUTH_REQUIRED'
@@ -13,16 +16,35 @@ export type ErrorCode =
   | 'DUPLICATE_LIKE'
   | 'COMMENTS_DISABLED'
   | 'VALIDATION_ERROR'
-  | 'INTERNAL_ERROR';
+  | 'INTERNAL_ERROR'
+  | 'RATE_LIMIT';
 
-export function sendSuccess<T>(res: Response, data: T, extraMeta?: Record<string, unknown>) {
-  return res.json({
+export type SendSuccessOptions = {
+  /** 默认 200 */
+  status?: number;
+  /** 默认 ok */
+  msg?: string;
+  /** 合并进 meta（requestId、ts 由函数写入；分页场景请用 sendPagination） */
+  extraMeta?: Record<string, unknown>;
+};
+
+function buildMeta(res: Response, extra?: Record<string, unknown>): ApiMeta {
+  return {
+    requestId: res.locals.requestId,
+    ts: Date.now(),
+    ...(extra || {}),
+  };
+}
+
+export function sendSuccess<T>(res: Response, data: T, options?: SendSuccessOptions) {
+  const status = options?.status ?? 200;
+  const msg = options?.msg ?? 'ok';
+
+  return res.status(status).json({
+    statusCode: status,
+    msg,
     data,
-    meta: {
-      requestId: res.locals.requestId,
-      ts: Date.now(),
-      ...extraMeta,
-    },
+    meta: buildMeta(res, options?.extraMeta),
   });
 }
 
@@ -30,16 +52,16 @@ export function sendPagination<T>(
   res: Response,
   data: T[],
   pagination: { page: number; limit: number; total: number },
-  extraMeta?: Record<string, unknown>
+  options?: SendSuccessOptions
 ) {
-  return res.json({
+  const status = options?.status ?? 200;
+  const msg = options?.msg ?? 'ok';
+
+  return res.status(status).json({
+    statusCode: status,
+    msg,
     data,
-    pagination,
-    meta: {
-      requestId: res.locals.requestId,
-      ts: Date.now(),
-      ...extraMeta,
-    },
+    meta: buildMeta(res, { ...options?.extraMeta, pagination }),
   });
 }
 
@@ -51,9 +73,11 @@ export function sendError(
   details?: Record<string, unknown>
 ) {
   return res.status(status).json({
+    statusCode: status,
+    msg: message,
+    data: null,
     error: {
       code,
-      message,
       details: details || {},
       requestId: res.locals.requestId,
     },

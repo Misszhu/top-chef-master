@@ -17,7 +17,8 @@ export default function Index() {
   const fetchDishes = async (search?: string) => {
     dispatch(setLoading(true))
     try {
-      const data = await getDishes({ search })
+      const q = search?.trim()
+      const data = await getDishes(q ? { search: q } : {})
       dispatch(setDishes(data))
     } catch (err: any) {
       dispatch(setError(err.message || 'Failed to fetch dishes'))
@@ -28,15 +29,19 @@ export default function Index() {
   }
 
   useEffect(() => {
-    fetchDishes()
+    void fetchDishes()
   }, [])
 
   const onSearchChange = (value: string) => {
     setSearchValue(value)
+    // 清空或仅空格：恢复全量列表（点清除按钮也会走 onChange('')）
+    if (value.trim() === '') {
+      void fetchDishes()
+    }
   }
 
   const onSearchAction = () => {
-    fetchDishes(searchValue)
+    void fetchDishes(searchValue)
   }
 
   const handleCardClick = (id: string) => {
@@ -53,6 +58,7 @@ export default function Index() {
           value={searchValue}
           onChange={onSearchChange}
           onActionClick={onSearchAction}
+          onConfirm={onSearchAction}
           placeholder='搜索想吃的菜...'
         />
       </View>

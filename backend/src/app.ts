@@ -11,11 +11,17 @@ import commentRoutes from './routes/comment.routes';
 import uploadRoutes from './routes/upload.routes';
 import { requestId } from './middleware/request-id.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
+import { apiWriteRateLimiter } from './middleware/rate-limit.middleware';
 import { sendSuccess } from './utils/api-response';
+import { buildCorsOptions } from './config/cors';
 
 dotenv.config();
 
 const app: Application = express();
+
+if (process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1);
+}
 
 // Middlewares
 app.use(requestId);
@@ -24,11 +30,13 @@ app.use(
     crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
-app.use(cors());
+app.use(cors(buildCorsOptions()));
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use('/api/v1', apiWriteRateLimiter);
 
 // Routes
 app.use('/api/v1/auth', authRoutes);

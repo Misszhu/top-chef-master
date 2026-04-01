@@ -38,7 +38,7 @@ export const uploadDishCover = (
             resolve(body.data as Dish)
             return
           }
-          const errMsg = body?.error?.message || '上传失败'
+          const errMsg = typeof body?.msg === 'string' && body.msg ? body.msg : '上传失败'
           reject(Object.assign(new Error(errMsg), { response: { status: res.statusCode, data: body } }))
         } catch (e) {
           reject(e)

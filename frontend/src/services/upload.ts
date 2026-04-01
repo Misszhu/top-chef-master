@@ -17,7 +17,7 @@ export function uploadRecipeImage(tempFilePath: string): Promise<string> {
             resolve(String(body.data.url))
             return
           }
-          const errMsg = body && body.error && body.error.message ? body.error.message : '上传失败'
+          const errMsg = body && typeof body.msg === 'string' && body.msg ? body.msg : '上传失败'
           reject(Object.assign(new Error(errMsg), { response: { status: res.statusCode, data: body } }))
         } catch (e) {
           reject(e)

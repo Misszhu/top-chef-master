@@ -5,17 +5,23 @@
   background-color: var(--tc-bg);
 
   .search-container {
+    width: 100%;
+    box-sizing: border-box;
     padding: 8rpx 0 10rpx;
     background-color: rgba(255, 255, 255, 0.92);
   }
 
   /* 首页搜索框与页面 26/22/20rpx 字体体系对齐 */
   .home-search-bar {
+    width: 100%;
+    box-sizing: border-box;
     padding: 8rpx 20rpx;
     background-color: transparent;
   }
 
   .home-search-bar .at-search-bar__input-cnt {
+    flex: 1;
+    min-width: 0;
     height: 64rpx;
     border-radius: 32rpx;
     background-color: rgba(0, 0, 0, 0.04);
@@ -51,12 +57,19 @@
     color: rgba(31, 31, 31, 0.35);
   }
 
+  /*
+   * taro-ui 默认用「隐藏但仍占位 + 负 marginRight」收起右侧「搜索」按钮，
+   * 小程序端负 margin 常不生效，且额外 margin 会导致整块灰条偏左、右侧留白。
+   * 首页仅用键盘确认搜索（onConfirm），右侧按钮移出布局。
+   */
   .home-search-bar .at-search-bar__action {
-    color: var(--tc-primary);
-    background-color: rgba(255, 153, 0, 0.12);
-    border-radius: 24rpx;
-    padding: 0 18rpx;
-    margin-left: 12rpx;
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    flex: 0 0 0 !important;
   }
 
   .dish-list-container {

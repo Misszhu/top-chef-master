@@ -14,9 +14,11 @@ export const getCommentsByDishId = async (
   const response = await request.get(`/dishes/${dishId}/comments`, {
     params: { page, limit },
   })
+  const meta = response.data.meta || {}
+  const pagination = meta.pagination || { page: 1, limit: 20, total: 0 }
   return {
     data: response.data.data,
-    pagination: response.data.pagination,
+    pagination,
   }
 }
 

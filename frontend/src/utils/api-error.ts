@@ -1,18 +1,30 @@
 /** 避免可选链 ?.，以兼容微信小程序真机旧 JS 引擎 */
 
+import type { ApiErrorEnvelope } from '../types/api-envelope'
+
+/** 与后端 `ApiErrorEnvelope` 一致：错误文案只读顶层 `msg` */
+
 export function getApiErrorMessage(err: any, fallback: string): string {
-  if (!err || !err.response || !err.response.data || !err.response.data.error) {
+  if (!err || !err.response || !err.response.data) {
     return fallback
   }
-  const m = err.response.data.error.message
-  return typeof m === 'string' && m ? m : fallback
+  const d = err.response.data as Partial<ApiErrorEnvelope>
+  const m = d.msg
+  if (typeof m === 'string' && m) {
+    return m
+  }
+  return fallback
 }
 
 export function getApiErrorCode(err: any): string | undefined {
-  if (!err || !err.response || !err.response.data || !err.response.data.error) {
+  if (!err || !err.response || !err.response.data) {
     return undefined
   }
-  const c = err.response.data.error.code
+  const e = (err.response.data as Partial<ApiErrorEnvelope>).error
+  if (!e) {
+    return undefined
+  }
+  const c = e.code
   return typeof c === 'string' ? c : undefined
 }
 
