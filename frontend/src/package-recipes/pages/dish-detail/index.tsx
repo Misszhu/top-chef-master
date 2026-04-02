@@ -1,12 +1,13 @@
-import { View, Text, Image, ScrollView, Textarea } from '@tarojs/components'
+import { View, Text, Image, ScrollView, Textarea, Button } from '@tarojs/components'
 import { AtTag, AtDivider, AtActivityIndicator, AtList, AtListItem, AtButton } from 'taro-ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import Taro, { useDidShow, useRouter } from '@tarojs/taro'
+import Taro, { useDidShow, useRouter, useShareAppMessage, useShareTimeline } from '@tarojs/taro'
 import { RootState } from '../../../store'
 import { setCurrentDish, setLoading, setError } from '../../../store/slices/dishSlice'
 import { getDishById, likeDish, unlikeDish } from '../../../services/dish'
 import { addFavorite, removeFavorite } from '../../../services/favorite'
+import { recordShare } from '../../../services/share'
 import {
   getCommentsByDishId,
   upsertComment,
@@ -56,6 +57,8 @@ export default function DishDetail() {
   idRef.current = id
   const { currentDish, loading } = useSelector((state: RootState) => state.dish)
   const { token, userInfo } = useSelector((state: RootState) => state.user)
+  const dishRef = useRef(currentDish)
+  dishRef.current = currentDish
 
   const [comments, setComments] = useState<Comment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
@@ -68,6 +71,10 @@ export default function DishDetail() {
   const [commentContent, setCommentContent] = useState('')
   const [commentRating, setCommentRating] = useState(5)
   const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const [shareCount, setShareCount] = useState(0)
+
+  const setShareCountRef = useRef(setShareCount)
+  setShareCountRef.current = setShareCount
 
   const reloadDish = useCallback(async () => {
     if (!id) return
@@ -76,6 +83,7 @@ export default function DishDetail() {
     setLikeCount(data.like_count)
     setLiked(!!data.liked_by_me)
     setFavorited(!!data.favorited_by_me)
+    setShareCount(Number(data.share_count) || 0)
   }, [id, dispatch])
 
   const loadComments = useCallback(async () => {
@@ -107,6 +115,7 @@ export default function DishDetail() {
         setLikeCount(data.like_count)
         setLiked(!!data.liked_by_me)
         setFavorited(!!data.favorited_by_me)
+        setShareCount(Number(data.share_count) || 0)
       } catch (err: any) {
         dispatch(setError(err.message || 'Failed to fetch dish detail'))
         Taro.showToast({ title: '加载失败', icon: 'error' })
@@ -114,6 +123,44 @@ export default function DishDetail() {
         dispatch(setLoading(false))
       }
     })()
+  })
+
+  useShareAppMessage(() => {
+    const d = dishRef.current
+    const dishId = (idRef.current as string) || ''
+    if (!d || !dishId) {
+      return { title: '顶级主厨', path: '/pages/index/index' }
+    }
+    const t = Taro.getStorageSync('token')
+    if (t) {
+      void recordShare(dishId, 'wechat_friend')
+        .then((r) => setShareCountRef.current(r.shareCount))
+        .catch(() => {})
+    }
+    return {
+      title: d.name,
+      path: `/package-recipes/pages/dish-detail/index?id=${dishId}`,
+      imageUrl: d.image_url || undefined,
+    }
+  })
+
+  useShareTimeline(() => {
+    const d = dishRef.current
+    const dishId = (idRef.current as string) || ''
+    if (!d || !dishId) {
+      return { title: '顶级主厨' }
+    }
+    const t = Taro.getStorageSync('token')
+    if (t) {
+      void recordShare(dishId, 'wechat_timeline')
+        .then((r) => setShareCountRef.current(r.shareCount))
+        .catch(() => {})
+    }
+    return {
+      title: d.name,
+      query: `id=${dishId}`,
+      imageUrl: d.image_url || undefined,
+    }
   })
 
   useEffect(() => {
@@ -333,6 +380,11 @@ export default function DishDetail() {
                 编辑菜谱
               </AtButton>
             )}
+            {process.env.TARO_ENV === 'weapp' && (
+              <Button className='share-native-btn' openType='share' size='mini'>
+                分享给好友
+              </Button>
+            )}
           </View>
         </View>
 
@@ -427,7 +479,7 @@ export default function DishDetail() {
           </Text>
           <View className='stats-row'>
             <Text>浏览 {currentDish.view_count}</Text>
-            <Text className='ml-3'>分享 {currentDish.share_count}</Text>
+            <Text className='ml-3'>分享 {shareCount}</Text>
           </View>
         </View>
       </View>

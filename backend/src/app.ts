@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes';
 import commentRoutes from './routes/comment.routes';
 import uploadRoutes from './routes/upload.routes';
 import favoriteRoutes from './routes/favorite.routes';
+import shareRoutes from './routes/share.routes';
 import { requestId } from './middleware/request-id.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import { apiWriteRateLimiter } from './middleware/rate-limit.middleware';
@@ -45,6 +46,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/dishes', dishRoutes);
 app.use('/api/v1/uploads', uploadRoutes);
 app.use('/api/v1/favorites', favoriteRoutes);
+app.use('/api/v1/shares', shareRoutes);
 app.use('/api/v1', commentRoutes);
 
 // Basic route

@@ -71,6 +71,22 @@
         .action-edit {
           margin-left: 0;
         }
+
+        .share-native-btn {
+          margin: 0;
+          padding: 0 28rpx;
+          height: 60rpx;
+          line-height: 60rpx;
+          font-size: 24rpx;
+          color: var(--tc-text);
+          background: var(--tc-card);
+          border: 1rpx solid rgba(0, 0, 0, 0.12);
+          border-radius: 8rpx;
+        }
+
+        .share-native-btn::after {
+          border: none;
+        }
       }
     }
 
