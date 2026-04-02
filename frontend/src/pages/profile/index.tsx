@@ -7,8 +7,9 @@ import { RootState } from '../../store'
 import { setUserInfo, setToken, logout } from '../../store/slices/userSlice'
 import { login, getProfile } from '../../services/user'
 import { getDishes } from '../../services/dish'
+import { getUserPublicProfile } from '../../services/social'
 import { Dish } from '../../types/dish'
-import { isAxiosStatus } from '../../utils/api-error'
+import { getApiErrorMessage, isAxiosStatus } from '../../utils/api-error'
 import './index.scss'
 
 export default function Profile() {
@@ -17,6 +18,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<'recipes' | 'works'>('recipes')
   const [myDishes, setMyDishes] = useState<Dish[]>([])
   const [myDishesLoading, setMyDishesLoading] = useState(false)
+  const [myFollowerCount, setMyFollowerCount] = useState(0)
+  const [myFollowingCount, setMyFollowingCount] = useState(0)
 
   const fetchMyDishes = useCallback(async () => {
     const t = token || Taro.getStorageSync('token')
@@ -32,6 +35,12 @@ export default function Profile() {
     } catch (e) {
       console.error('fetch my dishes:', e)
       setMyDishes([])
+      // 真机常见：未打到本机后端（API 地址非本机局域网 IP、手机与电脑不同 WiFi 等），此处否则会静默成「菜谱 0」
+      Taro.showToast({
+        title: getApiErrorMessage(e, '菜谱加载失败，请检查网络与 dev 里 API 地址'),
+        icon: 'none',
+        duration: 2800,
+      })
     } finally {
       setMyDishesLoading(false)
     }
@@ -40,8 +49,27 @@ export default function Profile() {
   const fetchMyDishesRef = useRef(fetchMyDishes)
   fetchMyDishesRef.current = fetchMyDishes
 
+  const loadMySocialStats = useCallback(async () => {
+    const t = token || Taro.getStorageSync('token')
+    const uid = userInfo?.id || Taro.getStorageSync('userInfo')?.id
+    if (!t || !uid) {
+      setMyFollowerCount(0)
+      setMyFollowingCount(0)
+      return
+    }
+    try {
+      const p = await getUserPublicProfile(uid as string)
+      setMyFollowerCount(p.follower_count)
+      setMyFollowingCount(p.following_count)
+    } catch {
+      setMyFollowerCount(0)
+      setMyFollowingCount(0)
+    }
+  }, [token, userInfo?.id])
+
   useDidShow(() => {
     void fetchMyDishesRef.current()
+    void loadMySocialStats()
   })
 
   const handleLogin = async () => {
@@ -118,6 +146,10 @@ export default function Profile() {
     void fetchMyDishes()
   }, [fetchMyDishes])
 
+  useEffect(() => {
+    void loadMySocialStats()
+  }, [loadMySocialStats])
+
   return (
     <View className='profile-page'>
       <View className='user-header'>
@@ -148,12 +180,26 @@ export default function Profile() {
               </View>
             </View>
             <View className='user-stats'>
-              <View className='stat-item'>
-                <Text className='stat-value'>0</Text>
+              <View
+                className='stat-item'
+                onClick={() => {
+                  const uid = userInfo && userInfo.id
+                  if (!uid) return
+                  Taro.navigateTo({ url: `/package-user/pages/user-list/index?userId=${uid}&type=following` })
+                }}
+              >
+                <Text className='stat-value'>{myFollowingCount}</Text>
                 <Text className='stat-label'>关注</Text>
               </View>
-              <View className='stat-item'>
-                <Text className='stat-value'>0</Text>
+              <View
+                className='stat-item'
+                onClick={() => {
+                  const uid = userInfo && userInfo.id
+                  if (!uid) return
+                  Taro.navigateTo({ url: `/package-user/pages/user-list/index?userId=${uid}&type=followers` })
+                }}
+              >
+                <Text className='stat-value'>{myFollowerCount}</Text>
                 <Text className='stat-label'>粉丝</Text>
               </View>
             </View>
@@ -169,7 +215,12 @@ export default function Profile() {
       <View className='menu-section'>
         <AtList>
           <AtListItem title='我的菜肴' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'list', }} />
-          <AtListItem title='我的收藏' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'heart', }} />
+          <AtListItem
+            title='我的收藏'
+            arrow='right'
+            iconInfo={{ size: 20, color: '#ff9900', value: 'heart' }}
+            onClick={() => Taro.navigateTo({ url: '/package-user/pages/favorites/index' })}
+          />
           <AtListItem title='我的菜单' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'folder', }} />
           <AtListItem title='购物清单' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'shopping-cart', }} />
         </AtList>
@@ -212,7 +263,9 @@ export default function Profile() {
                   <View
                     key={dish.id}
                     className='works-dish-card'
-                    onClick={() => Taro.navigateTo({ url: `/pages/dish-detail/index?id=${dish.id}` })}
+                    onClick={() =>
+                      Taro.navigateTo({ url: `/package-recipes/pages/dish-detail/index?id=${dish.id}` })
+                    }
                   >
                     <Image
                       className='works-dish-thumb'
@@ -241,7 +294,7 @@ export default function Profile() {
                 className='create-btn'
                 onClick={() => {
                   if (activeTab === 'recipes') {
-                    Taro.navigateTo({ url: '/pages/add-dish/index' })
+                    Taro.navigateTo({ url: '/package-recipes/pages/add-dish/index' })
                   } else {
                     Taro.showToast({ title: '作品发布开发中', icon: 'none' })
                   }

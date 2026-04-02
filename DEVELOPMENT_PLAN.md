@@ -41,7 +41,8 @@
 ### 待开发（后续迭代）
 
 - [ ] **菜谱封面 / 图片存储演进**：当前实现将上传文件落在**本机磁盘**——封面在 `backend/uploads/dishes/`，步骤等通用配图在 `backend/uploads/recipe-media/`（均经 `GET /uploads/...` 访问）。进程重启**不会**删文件；但在无持久卷的容器、多实例或换机部署时文件会丢失或不一致。**后续需优化为对象存储**（如阿里云 OSS、腾讯云 COS、S3），数据库只存可公开访问的 URL（可选 CDN）。
-- [ ] 收藏、关注、分享统计闭环
+- [x] 收藏、关注与用户主页（M2 主体）
+- [ ] 分享统计闭环
 - [ ] **M3-A**：菜单与聚餐点菜（`menus` / `menu_items`，从菜谱加入、排序、乐观锁；单人）
 - [ ] **M3-B**：购物清单（从菜单生成、勾选/编辑、跨端同步）
 - [ ] **M4**：饮食日记（`meal_log_entries` + `/api/v1/meal-logs`，按日查询与 CRUD）
@@ -61,8 +62,8 @@
 
 ### M2：社交与增长（关注/收藏/分享）
 验收标准（建议）：
-- [ ] 关注/取消关注、粉丝/关注列表
-- [ ] 收藏/取消收藏、收藏列表
+- [x] 关注/取消关注、粉丝/关注列表（API + 用户主页 + 列表页；见 `users/:id/*`）
+- [x] 收藏/取消收藏、收藏列表（API + 详情收藏 +「我的收藏」页；详情带 `favorited_by_me`）
 - [ ] 分享入口 + 分享统计回传（share/view）
 
 ### M3：菜单、聚餐点菜与购物清单（跨端同步，分阶段交付）
@@ -142,19 +143,20 @@
 ## Iteration 2：社交闭环（5-10 天）
 
 ### Backend
-- [ ] **收藏**
-  - [ ] `POST/DELETE /favorites/:dishId`（或等价）
-  - [ ] `GET /favorites`
-- [ ] **关注**
-  - [ ] follow/unfollow
-  - [ ] followers/following 列表
+- [x] **收藏**
+  - [x] `POST/DELETE /favorites/:dishId`、`GET /favorites`（分页）、`GET /favorites/:dishId/status`
+- [x] **关注**
+  - [x] `POST/DELETE /users/:id/follow`
+  - [x] `GET /users/:id/followers`、`GET /users/:id/following`（分页）
+  - [x] `GET /users/:id/public`（粉丝/关注/可见菜谱数、`is_following`）
+  - [x] `GET /users/:id/dishes`（与列表相同可见性规则）
 - [ ] **分享统计**
   - [ ] share 记录入库
   - [ ] stats 查询
 
 ### Frontend
-- [ ] 收藏按钮 + 收藏列表页
-- [ ] 用户主页 + 关注按钮 + 列表
+- [x] 收藏按钮 + 收藏列表页
+- [x] 用户主页 + 关注按钮 + 粉丝/关注列表页
 - [ ] 分享入口 + 分享回传
 
 ---

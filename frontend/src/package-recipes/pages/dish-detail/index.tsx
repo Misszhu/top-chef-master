@@ -3,17 +3,18 @@ import { AtTag, AtDivider, AtActivityIndicator, AtList, AtListItem, AtButton } f
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import Taro, { useDidShow, useRouter } from '@tarojs/taro'
-import { RootState } from '../../store'
-import { setCurrentDish, setLoading, setError } from '../../store/slices/dishSlice'
-import { getDishById, likeDish, unlikeDish } from '../../services/dish'
+import { RootState } from '../../../store'
+import { setCurrentDish, setLoading, setError } from '../../../store/slices/dishSlice'
+import { getDishById, likeDish, unlikeDish } from '../../../services/dish'
+import { addFavorite, removeFavorite } from '../../../services/favorite'
 import {
   getCommentsByDishId,
   upsertComment,
   updateComment,
   deleteComment,
-} from '../../services/comment'
-import type { Comment } from '../../types/comment'
-import { getApiErrorCode, getApiErrorMessage, isAxiosStatus } from '../../utils/api-error'
+} from '../../../services/comment'
+import type { Comment } from '../../../types/comment'
+import { getApiErrorCode, getApiErrorMessage, isAxiosStatus } from '../../../utils/api-error'
 import './index.scss'
 
 function formatAvgRating(v: number | string | undefined | null): string {
@@ -61,6 +62,8 @@ export default function DishDetail() {
   const [likeCount, setLikeCount] = useState(0)
   const [liked, setLiked] = useState(false)
   const [likeBusy, setLikeBusy] = useState(false)
+  const [favorited, setFavorited] = useState(false)
+  const [favoriteBusy, setFavoriteBusy] = useState(false)
 
   const [commentContent, setCommentContent] = useState('')
   const [commentRating, setCommentRating] = useState(5)
@@ -72,6 +75,7 @@ export default function DishDetail() {
     dispatch(setCurrentDish(data))
     setLikeCount(data.like_count)
     setLiked(!!data.liked_by_me)
+    setFavorited(!!data.favorited_by_me)
   }, [id, dispatch])
 
   const loadComments = useCallback(async () => {
@@ -102,6 +106,7 @@ export default function DishDetail() {
         dispatch(setCurrentDish(data))
         setLikeCount(data.like_count)
         setLiked(!!data.liked_by_me)
+        setFavorited(!!data.favorited_by_me)
       } catch (err: any) {
         dispatch(setError(err.message || 'Failed to fetch dish detail'))
         Taro.showToast({ title: '加载失败', icon: 'error' })
@@ -169,6 +174,43 @@ export default function DishDetail() {
     }
   }
 
+  const handleToggleFavorite = async () => {
+    if (!token || !id) {
+      Taro.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    setFavoriteBusy(true)
+    try {
+      if (favorited) {
+        await removeFavorite(id as string)
+        setFavorited(false)
+        Taro.showToast({ title: '已取消收藏', icon: 'none' })
+      } else {
+        await addFavorite(id as string)
+        setFavorited(true)
+        Taro.showToast({ title: '已收藏', icon: 'success' })
+      }
+    } catch (err: any) {
+      const code = getApiErrorCode(err)
+      if (code === 'DUPLICATE_FAVORITE') {
+        setFavorited(true)
+        Taro.showToast({ title: '已收藏', icon: 'none' })
+        reloadDish()
+      } else {
+        Taro.showToast({ title: getApiErrorMessage(err, '操作失败'), icon: 'none' })
+      }
+    } finally {
+      setFavoriteBusy(false)
+    }
+  }
+
+  const goAuthorProfile = () => {
+    if (!currentDish || !currentDish.user_id) return
+    const owner = !!(userInfo && userInfo.id && currentDish.user_id === userInfo.id)
+    if (owner) return
+    Taro.navigateTo({ url: `/package-user/pages/user-profile/index?id=${currentDish.user_id}` })
+  }
+
   const handleSubmitComment = async () => {
     if (!token || !id || !currentDish) {
       Taro.showToast({ title: '请先登录', icon: 'none' })
@@ -218,7 +260,7 @@ export default function DishDetail() {
 
   const goEditDish = () => {
     if (!id) return
-    Taro.navigateTo({ url: `/pages/edit-dish/index?id=${id}` })
+    Taro.navigateTo({ url: `/package-recipes/pages/edit-dish/index?id=${id}` })
   }
 
   if (loading || !currentDish) {
@@ -276,6 +318,15 @@ export default function DishDetail() {
               onClick={handleToggleLike}
             >
               {liked ? '已赞' : '点赞'} {likeCount}
+            </AtButton>
+            <AtButton
+              size='small'
+              type={favorited ? 'primary' : 'secondary'}
+              loading={favoriteBusy}
+              className='action-edit'
+              onClick={handleToggleFavorite}
+            >
+              {favorited ? '已收藏' : '收藏'}
             </AtButton>
             {isOwner && (
               <AtButton size='small' className='action-edit' onClick={goEditDish}>
@@ -370,8 +421,9 @@ export default function DishDetail() {
         </View>
 
         <View className='footer-info'>
-          <Text className='user-info'>
+          <Text className='user-info' onClick={goAuthorProfile}>
             由 {currentDish.user_nickname} 发布于 {new Date(currentDish.created_at).toLocaleDateString()}
+            {!isOwner ? ' · 查看主页' : ''}
           </Text>
           <View className='stats-row'>
             <Text>浏览 {currentDish.view_count}</Text>

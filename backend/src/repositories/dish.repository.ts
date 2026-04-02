@@ -354,6 +354,28 @@ export class DishRepository {
     return rows.length > 0;
   }
 
+  async isFavoritedByUser(dishId: string, userId: string): Promise<boolean> {
+    const { rows } = await pool.query(
+      'SELECT 1 FROM favorites WHERE dish_id = $1 AND user_id = $2 LIMIT 1',
+      [dishId, userId]
+    );
+    return rows.length > 0;
+  }
+
+  /** 某作者名下、当前访问者可见的菜谱数量（用于主页展示） */
+  async countVisibleByAuthor(authorId: string, viewerId: string | null): Promise<number> {
+    const conditions: string[] = ['d.user_id = $1', 'd.deleted_at IS NULL'];
+    const values: any[] = [authorId];
+    let paramIndex = 2;
+    ({ paramIndex } = this.applyVisibilityFilter(conditions, values, viewerId, paramIndex));
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+    const { rows } = await pool.query<{ total: number }>(
+      `SELECT COUNT(*)::int AS total FROM dishes d ${whereClause}`,
+      values
+    );
+    return rows[0]?.total ?? 0;
+  }
+
   async unlikeDish(dishId: string, userId: string): Promise<number> {
     const client = await pool.connect();
     try {

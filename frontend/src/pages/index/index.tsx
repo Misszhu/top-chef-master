@@ -11,6 +11,7 @@ import './index.scss'
 export default function Index() {
   const dispatch = useDispatch()
   const { dishes, loading } = useSelector((state: RootState) => state.dish)
+  const { userInfo } = useSelector((state: RootState) => state.user)
   const [searchValue, setSearchValue] = useState('')
   const skeletonCards = Array.from({ length: 6 })
 
@@ -46,7 +47,7 @@ export default function Index() {
 
   const handleCardClick = (id: string) => {
     Taro.navigateTo({
-      url: `/pages/dish-detail/index?id=${id}`
+      url: `/package-recipes/pages/dish-detail/index?id=${id}`
     })
   }
 
@@ -94,7 +95,17 @@ export default function Index() {
                 <View className='dish-info'>
                   <Text className='dish-title'>{dish.name}</Text>
                   <Text className='dish-desc'>{dish.description != null ? dish.description : ''}</Text>
-                  <View className='dish-author'>
+                  <View
+                    className='dish-author'
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!dish.user_id) return
+                      if (userInfo && userInfo.id === dish.user_id) return
+                      Taro.navigateTo({
+                        url: `/package-user/pages/user-profile/index?id=${dish.user_id}`,
+                      })
+                    }}
+                  >
                     <Image
                       className='dish-avatar'
                       src={

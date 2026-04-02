@@ -2,10 +2,10 @@ import { View, Text, Input, Textarea } from '@tarojs/components'
 import { AtButton, AtSwitch } from 'taro-ui'
 import { useState } from 'react'
 import Taro from '@tarojs/taro'
-import RecipeStepsEditor, { emptyRecipeStep } from '../../components/recipe-steps-editor'
-import { createDish } from '../../services/dish'
-import type { DishCreateDTO } from '../../types/dish'
-import { getApiErrorMessage } from '../../utils/api-error'
+import RecipeStepsEditor, { emptyRecipeStep } from '../../../components/recipe-steps-editor'
+import { createDish } from '../../../services/dish'
+import type { DishCreateDTO } from '../../../types/dish'
+import { getApiErrorMessage } from '../../../utils/api-error'
 import './index.scss'
 
 type IngredientRow = { name: string; quantity: string; unit: string }
@@ -82,7 +82,7 @@ export default function AddDish() {
       const dish = await createDish(payload)
       Taro.showToast({ title: '发布成功', icon: 'success' })
       setTimeout(() => {
-        Taro.redirectTo({ url: `/pages/dish-detail/index?id=${dish.id}` })
+        Taro.redirectTo({ url: `/package-recipes/pages/dish-detail/index?id=${dish.id}` })
       }, 400)
     } catch (err: any) {
       Taro.showToast({ title: getApiErrorMessage(err, '发布失败'), icon: 'none' })

@@ -12,6 +12,7 @@ export class DishService {
     if (dish) {
       if (viewerId) {
         dish.liked_by_me = await dishRepository.isLikedByUser(id, viewerId);
+        dish.favorited_by_me = await dishRepository.isFavoritedByUser(id, viewerId);
       }
       // Async increment view count, don't wait for it
       dishRepository.incrementViewCount(id).catch(err => console.error('Error incrementing view count:', err));

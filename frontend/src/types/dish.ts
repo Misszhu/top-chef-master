@@ -43,6 +43,7 @@ export interface Dish {
   steps?: CookingStep[];
   /** 登录且后端返回时存在 */
   liked_by_me?: boolean;
+  favorited_by_me?: boolean;
 }
 
 export interface DishCreateDTO {
