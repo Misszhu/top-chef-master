@@ -13,6 +13,7 @@ import {
   updateMenu,
   updateMenuItem,
 } from '../../../services/menu'
+import { createShoppingList } from '../../../services/shopping-list'
 import type { MenuDetail, MenuDishItem } from '../../../types/menu'
 import { getApiErrorMessage, isAxiosStatus } from '../../../utils/api-error'
 import { scheduleNavigateAfterUiSettled } from '../../../utils/schedule-navigate'
@@ -33,6 +34,7 @@ export default function MenuEditPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [copyBusy, setCopyBusy] = useState(false)
+  const [genShoppingBusy, setGenShoppingBusy] = useState(false)
 
   const load = useCallback(async () => {
     if (!id || !token) {
@@ -183,6 +185,24 @@ export default function MenuEditPage() {
     }
   }
 
+  const handleGenerateShoppingList = async () => {
+    if (!id) return
+    if (sortedDishes.length === 0) {
+      Taro.showToast({ title: '请先添加菜品', icon: 'none' })
+      return
+    }
+    setGenShoppingBusy(true)
+    try {
+      const d = await createShoppingList({ menu_id: id })
+      Taro.showToast({ title: '已生成购物清单', icon: 'success' })
+      Taro.navigateTo({ url: `/package-shopping/pages/shopping-detail/index?id=${d.id}` })
+    } catch (e) {
+      Taro.showToast({ title: getApiErrorMessage(e, '生成失败'), icon: 'none' })
+    } finally {
+      setGenShoppingBusy(false)
+    }
+  }
+
   const handleDeleteMenu = () => {
     if (!id) return
     Taro.showModal({
@@ -252,6 +272,9 @@ export default function MenuEditPage() {
           </AtButton>
           <AtButton size='small' loading={copyBusy} onClick={handleCopy}>
             复制菜单
+          </AtButton>
+          <AtButton size='small' loading={genShoppingBusy} onClick={() => void handleGenerateShoppingList()}>
+            生成购物清单
           </AtButton>
           <AtButton size='small' onClick={handleDeleteMenu}>
             删除菜单

@@ -47,7 +47,7 @@
 - [ ] **（可选演进）菜单整单保存**：在保留现有 `PUT /menus/:id` 与 `.../items/*` 的前提下，评审是否增加「一次提交菜单元信息 + 菜单项列表」的接口（草案见 `TECHNICAL_DESIGN.md` 菜单接口「可选演进」、产品口径见 `PRODUCT_DESIGN.md` §2.1.8）。**当前实现维持分接口，未承诺排期。**
 - [ ] **菜单多人编辑 — 阶段一（弱协作）**：共享成员 + 仍主要依赖 `ifMatchVersion` 与 **409 异步合并**；可选 **菜单项认领**（租约）；**无 WebSocket**。产品口径 `PRODUCT_DESIGN.md` §2.1.8「多人协作」；技术草案 `TECHNICAL_DESIGN.md`「多人编辑（分两阶段）」。
 - [ ] **菜单多人编辑 — 阶段二（实时协同）**：中心化操作流 + **WebSocket**（或等价通道）+ 广播/冲突策略；**在阶段一之后再评审排期**。弱协作阶段后端宜保持 **原子操作语义**，便于演进（见技术文档说明）。
-- [ ] **M3-B**：购物清单（从菜单生成、勾选/编辑、跨端同步）
+- [x] **M3-B**：购物清单（从菜单生成、勾选/编辑、跨端同步；弱网离线缓存另迭代）
 - [ ] **M4**：饮食日记（`meal_log_entries` + `/api/v1/meal-logs`，按日查询与 CRUD）
 - [ ] 内容安全/举报/封禁与可观测性
 
@@ -87,9 +87,10 @@
 - [ ] **阶段二（实时协同）**：WebSocket 指令通道、断线重连与版本补偿；**依赖阶段一数据模型与操作语义稳定后再做**
 
 **M3-B（购物清单）** 验收标准（建议）：
-- [ ] 从菜单生成购物清单（合并食材规则与产品一致）
-- [ ] `shopping_list_items` 勾选/改量/增删；清单级乐观锁
-- [ ] 小程序：购物清单页、弱网缓存策略（与技术文档 §4 一致）
+- [x] 从菜单生成购物清单（合并食材规则与产品一致：`POST /shopping-lists` 带 `menu_id` + `POST .../from-menu/:menuId`）
+- [x] `shopping_list_items` 勾选/改量/增删；清单级乐观锁（`PUT /shopping-lists/:id` 带 `estimated_cost` + `ifMatchVersion`）
+- [x] 小程序：购物清单列表/详情、个人中心与菜单编辑入口（最小闭环）
+- [ ] 弱网/离线缓存与冲突合并 UI（与技术文档 §4 一致；另迭代）
 
 ### M4：饮食日记
 验收标准（建议）：
@@ -209,13 +210,13 @@
 ## Iteration 4：M3-B 购物清单（5-10 天）
 
 ### Backend
-- [ ] `shopping_lists` + `shopping_list_items` 写路径与清单级 `version`
-- [ ] `POST .../from-menu/:menuId` 生成逻辑（食材合并）
-- [ ] 条目勾选/数量/备注的更新接口
+- [x] `shopping_lists` + `shopping_list_items` 写路径与清单级 `version`（`GET/POST /shopping-lists`、`GET/PUT/DELETE /shopping-lists/:id`）
+- [x] `POST .../from-menu/:menuId` 生成逻辑（食材合并）
+- [x] 条目勾选/数量/备注的更新接口（`POST/PUT/DELETE .../items`）
 
 ### Frontend
-- [ ] 购物清单页（分类、勾选、编辑）
-- [ ] 从菜单「生成购物清单」入口
+- [x] 购物清单页（分类、勾选、编辑）
+- [x] 从菜单「生成购物清单」入口
 
 ---
 

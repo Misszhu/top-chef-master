@@ -22,6 +22,11 @@ export default defineAppConfig({
       name: 'menus',
       pages: ['pages/menu-list/index', 'pages/menu-edit/index'],
     },
+    {
+      root: 'package-shopping',
+      name: 'shopping',
+      pages: ['pages/shopping-list/index', 'pages/shopping-detail/index'],
+    },
   ],
   window: {
     backgroundTextStyle: 'light',

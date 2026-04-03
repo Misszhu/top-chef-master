@@ -227,7 +227,18 @@ export default function Profile() {
             iconInfo={{ size: 20, color: '#ff9900', value: 'folder' }}
             onClick={() => Taro.navigateTo({ url: '/package-menus/pages/menu-list/index' })}
           />
-          <AtListItem title='购物清单' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'shopping-cart', }} />
+          <AtListItem
+            title='购物清单'
+            arrow='right'
+            iconInfo={{ size: 20, color: '#ff9900', value: 'shopping-cart' }}
+            onClick={() => {
+              if (!token) {
+                Taro.showToast({ title: '请先登录', icon: 'none' })
+                return
+              }
+              Taro.navigateTo({ url: '/package-shopping/pages/shopping-list/index' })
+            }}
+          />
         </AtList>
       </View>
 
