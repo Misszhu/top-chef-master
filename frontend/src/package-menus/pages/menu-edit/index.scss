@@ -1,0 +1,154 @@
+.menu-edit-page {
+  min-height: 100vh;
+  background-color: var(--tc-bg);
+  padding-bottom: 48rpx;
+
+  .section {
+    margin: 24rpx 30rpx;
+    padding: 28rpx;
+    background: var(--tc-card);
+    border-radius: 20rpx;
+    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.04);
+  }
+
+  .section-title {
+    font-size: 28rpx;
+    font-weight: 600;
+    color: var(--tc-text);
+    margin-bottom: 20rpx;
+    display: block;
+  }
+
+  .section-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20rpx;
+    flex-wrap: wrap;
+    margin-bottom: 12rpx;
+
+    .section-title {
+      margin-bottom: 0;
+      flex: 1;
+      min-width: 200rpx;
+    }
+  }
+
+  .section-hint {
+    font-size: 22rpx;
+    color: var(--tc-muted);
+    line-height: 1.45;
+    margin-bottom: 20rpx;
+    display: block;
+  }
+
+  .section-menu-meta {
+    margin-bottom: 48rpx;
+  }
+
+  .field-label {
+    font-size: 24rpx;
+    color: var(--tc-muted);
+    margin-bottom: 8rpx;
+    display: block;
+  }
+
+  /* 微信小程序 input 失焦后易裁切字形：需明确行高与可视高度，避免 line-height < 字体实际占位 */
+  .text-input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 96rpx;
+    height: 96rpx;
+    padding: 0 24rpx;
+    font-size: 28rpx;
+    line-height: 96rpx;
+    border: 1rpx solid rgba(0, 0, 0, 0.08);
+    border-radius: 12rpx;
+    margin-bottom: 20rpx;
+    vertical-align: middle;
+  }
+
+  .textarea-input {
+    width: 100%;
+    min-height: 140rpx;
+    padding: 16rpx 20rpx;
+    font-size: 26rpx;
+    border: 1rpx solid rgba(0, 0, 0, 0.08);
+    border-radius: 12rpx;
+    box-sizing: border-box;
+  }
+
+  .actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16rpx;
+    margin-top: 20rpx;
+  }
+
+  .item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20rpx;
+    padding: 20rpx 0;
+    border-bottom: 1rpx solid rgba(0, 0, 0, 0.06);
+  }
+
+  .item-row:last-child {
+    border-bottom: none;
+  }
+
+  .item-thumb {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 12rpx;
+    flex-shrink: 0;
+  }
+
+  .item-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .item-name {
+    font-size: 28rpx;
+    color: var(--tc-text);
+    font-weight: 500;
+    margin-bottom: 12rpx;
+    display: block;
+  }
+
+  .servings-input {
+    width: 160rpx;
+    box-sizing: border-box;
+    min-height: 72rpx;
+    height: 72rpx;
+    padding: 0 16rpx;
+    font-size: 26rpx;
+    line-height: 72rpx;
+    border: 1rpx solid rgba(0, 0, 0, 0.08);
+    border-radius: 8rpx;
+    vertical-align: middle;
+  }
+
+  .item-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12rpx;
+    margin-top: 12rpx;
+  }
+
+  .hint-muted {
+    font-size: 24rpx;
+    color: var(--tc-muted);
+    padding: 40rpx 0;
+    text-align: center;
+    display: block;
+  }
+
+  .loading-box {
+    padding: 120rpx 40rpx;
+    text-align: center;
+    color: var(--tc-muted);
+    font-size: 26rpx;
+  }
+}

@@ -43,7 +43,7 @@
 - [ ] **菜谱封面 / 图片存储演进**：当前实现将上传文件落在**本机磁盘**——封面在 `backend/uploads/dishes/`，步骤等通用配图在 `backend/uploads/recipe-media/`（均经 `GET /uploads/...` 访问）。进程重启**不会**删文件；但在无持久卷的容器、多实例或换机部署时文件会丢失或不一致。**后续需优化为对象存储**（如阿里云 OSS、腾讯云 COS、S3），数据库只存可公开访问的 URL（可选 CDN）。
 - [x] 收藏、关注与用户主页（M2 主体）
 - [x] 分享统计闭环（微信分享入口、`POST /shares`、详情浏览/分享数展示）
-- [ ] **M3-A**：菜单与聚餐点菜（`menus` / `menu_items`，从菜谱加入、排序、乐观锁；单人）
+- [x] **M3-A（主体）**：菜单与聚餐点菜（`menus` / `menu_items`，从菜谱加入、排序、乐观锁、复制；单人）
 - [ ] **M3-B**：购物清单（从菜单生成、勾选/编辑、跨端同步）
 - [ ] **M4**：饮食日记（`meal_log_entries` + `/api/v1/meal-logs`，按日查询与 CRUD）
 - [ ] 内容安全/举报/封禁与可观测性
@@ -70,10 +70,10 @@
 > 产品口径见 `PRODUCT_DESIGN.md` §2.1.8；技术口径见 `TECHNICAL_DESIGN.md` §2.4 / §13.4。
 
 **M3-A（菜单闭环，单人聚餐点菜）** 验收标准（建议）：
-- [ ] `menus` CRUD（含 `version` + `ifMatchVersion`，冲突 409）
-- [ ] `menu_items` 增删改；**从菜谱加入**时校验 dish 可见性；**排序**（`sequence` 或 `reorder` 接口二选一落地）
-- [ ] 菜单复制（`POST /menus/:id/copy` 或等价）
-- [ ] 小程序：菜单列表 / 编辑页、菜谱详情「加入菜单」入口（可先做最小闭环）
+- [x] `menus` CRUD（含 `version` + `ifMatchVersion`，冲突 409）
+- [x] `menu_items` 增删改；**从菜谱加入**时校验 dish 可见性；**排序**（`PUT .../items/reorder` + `sequence`）
+- [x] 菜单复制（`POST /menus/:id/copy` 或等价）
+- [x] 小程序：菜单列表 / 编辑页、菜谱详情「加入菜单」入口（最小闭环；多菜单时跳转列表选目标）
 
 **M3-B（购物清单）** 验收标准（建议）：
 - [ ] 从菜单生成购物清单（合并食材规则与产品一致）
@@ -164,14 +164,14 @@
 ## Iteration 3：M3-A 菜单与聚餐点菜（5-10 天）
 
 ### Backend
-- [ ] `menus` CRUD + 软删 + `version`/`ifMatchVersion`（与现有 `dishes` 模式对齐）
-- [ ] `menu_items` CRUD；`UNIQUE(menu_id, dish_id)` 行为与产品一致
-- [ ] 菜单项排序接口（`PUT .../reorder` 或逐项 `sequence`）
-- [ ] `POST /menus/:id/copy`（及可选 `publish`/分享占位，**不做**多人协作）
+- [x] `menus` CRUD + 软删 + `version`/`ifMatchVersion`（与现有 `dishes` 模式对齐）
+- [x] `menu_items` CRUD；`UNIQUE(menu_id, dish_id)` 行为与产品一致
+- [x] 菜单项排序接口（`PUT .../items/reorder` 全量 `itemIds`）
+- [x] `POST /menus/:id/copy`（`publish`/分享仍属后续）
 
 ### Frontend
-- [ ] 菜单列表页、菜单编辑页
-- [ ] 菜谱详情「加入菜单」（选择目标菜单或默认新建）
+- [x] 分包 `package-menus`：菜单列表、菜单编辑（含上移/下移、份量、复制/删菜单）
+- [x] 菜谱详情「加入菜单」：无菜单时一键新建；有菜单时跳转列表带 `dishId` 点选加入
 
 ---
 

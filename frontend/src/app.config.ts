@@ -5,12 +5,22 @@ export default defineAppConfig({
     {
       root: 'package-recipes',
       name: 'recipes',
-      pages: ['pages/dish-detail/index', 'pages/add-dish/index', 'pages/edit-dish/index'],
+      pages: [
+        'pages/dish-detail/index',
+        'pages/add-dish/index',
+        'pages/edit-dish/index',
+        'pages/pick-dish-for-menu/index',
+      ],
     },
     {
       root: 'package-user',
       name: 'user',
       pages: ['pages/favorites/index', 'pages/user-profile/index', 'pages/user-list/index'],
+    },
+    {
+      root: 'package-menus',
+      name: 'menus',
+      pages: ['pages/menu-list/index', 'pages/menu-edit/index'],
     },
   ],
   window: {

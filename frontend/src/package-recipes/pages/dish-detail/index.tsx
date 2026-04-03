@@ -8,6 +8,7 @@ import { setCurrentDish, setLoading, setError } from '../../../store/slices/dish
 import { getDishById, likeDish, unlikeDish } from '../../../services/dish'
 import { addFavorite, removeFavorite } from '../../../services/favorite'
 import { recordShare } from '../../../services/share'
+import { addMenuItem, createMenu, getMenus } from '../../../services/menu'
 import {
   getCommentsByDishId,
   upsertComment,
@@ -16,6 +17,7 @@ import {
 } from '../../../services/comment'
 import type { Comment } from '../../../types/comment'
 import { getApiErrorCode, getApiErrorMessage, isAxiosStatus } from '../../../utils/api-error'
+import { scheduleNavigateAfterUiSettled } from '../../../utils/schedule-navigate'
 import './index.scss'
 
 function formatAvgRating(v: number | string | undefined | null): string {
@@ -310,6 +312,43 @@ export default function DishDetail() {
     Taro.navigateTo({ url: `/package-recipes/pages/edit-dish/index?id=${id}` })
   }
 
+  const handleAddToMenu = async () => {
+    const dishId = id as string
+    if (!dishId) return
+    if (!token) {
+      Taro.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    try {
+      const { menus } = await getMenus(1, 50)
+      if (menus.length === 0) {
+        const r = await Taro.showModal({
+          title: '暂无菜单',
+          content: '是否创建「新菜单」并加入这道菜？',
+        })
+        if (!r.confirm) return
+        Taro.showLoading({ title: '请稍候' })
+        try {
+          const m = await createMenu({ name: '新菜单' })
+          await addMenuItem(m.id, dishId, 1)
+          Taro.hideLoading()
+          Taro.showToast({ title: '已加入新菜单', icon: 'success' })
+        } catch (e) {
+          Taro.hideLoading()
+          Taro.showToast({ title: getApiErrorMessage(e, '操作失败'), icon: 'none' })
+        }
+        return
+      }
+      scheduleNavigateAfterUiSettled(() => {
+        Taro.navigateTo({
+          url: `/package-menus/pages/menu-list/index?dishId=${encodeURIComponent(dishId)}`,
+        })
+      }, 80)
+    } catch (e) {
+      Taro.showToast({ title: getApiErrorMessage(e, '加载菜单失败'), icon: 'none' })
+    }
+  }
+
   if (loading || !currentDish) {
     return (
       <View className='loading-container'>
@@ -374,6 +413,9 @@ export default function DishDetail() {
               onClick={handleToggleFavorite}
             >
               {favorited ? '已收藏' : '收藏'}
+            </AtButton>
+            <AtButton size='small' className='action-edit' onClick={handleAddToMenu}>
+              加入菜单
             </AtButton>
             {isOwner && (
               <AtButton size='small' className='action-edit' onClick={goEditDish}>

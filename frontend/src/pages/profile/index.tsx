@@ -221,7 +221,12 @@ export default function Profile() {
             iconInfo={{ size: 20, color: '#ff9900', value: 'heart' }}
             onClick={() => Taro.navigateTo({ url: '/package-user/pages/favorites/index' })}
           />
-          <AtListItem title='我的菜单' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'folder', }} />
+          <AtListItem
+            title='我的菜单'
+            arrow='right'
+            iconInfo={{ size: 20, color: '#ff9900', value: 'folder' }}
+            onClick={() => Taro.navigateTo({ url: '/package-menus/pages/menu-list/index' })}
+          />
           <AtListItem title='购物清单' arrow='right' iconInfo={{ size: 20, color: '#ff9900', value: 'shopping-cart', }} />
         </AtList>
       </View>
