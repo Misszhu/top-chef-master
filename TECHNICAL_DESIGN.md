@@ -748,6 +748,33 @@ GET /api/v1/menus/:id/share-stats
   响应：{ shareCount: 100 }
 ```
 
+##### 可选演进：整单保存（**未落地**，与产品/开发计划对齐后再定）
+
+> **现状（权威）**：继续采用上文分项接口——`PUT /menus/:id` 仅菜单元信息；`POST/PUT/DELETE .../items`、`PUT .../items/reorder` 处理菜单项。小程序等客户端 **当前维持该模型**。
+
+若评审通过「一次提交整张菜单」，可采用以下**草案之一**（实现时择一，并决定是否长期保留分项接口以兼容轻量客户端）：
+
+**方案 A — 扩展 `PUT /api/v1/menus/:id`**
+
+- 在现有 body 上增加可选字段 `items`（客户端给出的**完整期望列表**），例如：  
+  `items: [{ id?, dish_id, servings, notes, sequence }]`
+- 语义建议（单事务、`ifMatchVersion` 仍必填，成功则 `menus.version += 1`）：
+  - 带 `id` 且属于本菜单：更新 `servings` / `notes` / `sequence`；
+  - 无 `id` 或有 `id` 但为新行语义：插入（校验 `dish_id` 对当前用户可见、`UNIQUE(menu_id, dish_id)`、菜单项数量上限）；
+  - 库中已有、但未出现在 `items` 中的行：删除。
+- 冲突：**409 `VERSION_CONFLICT`**，`error.details` 与现有一致（含 `serverSnapshot` 等）。
+
+**方案 B — 独立路径**
+
+- 例如 `PUT /api/v1/menus/:id/snapshot`（或 `PATCH /api/v1/menus/:id` 专用于带 `items` 的写），body 与方案 A 相同，避免扩大原 `PUT /menus/:id` 的契约面。
+
+**取舍简述**
+
+- **整单保存**：请求次数少、与「菜单是一整体」一致；需处理较大 body、弱网失败重试、服务端 diff/校验与测试成本。
+- **分项接口**：载荷小、语义清晰、错误定位简单；编辑页需向用户说明「哪些操作要单独保存」。
+
+详见 `DEVELOPMENT_PLAN.md` 待办「（可选演进）菜单整单保存」、`PRODUCT_DESIGN.md` §2.1.8 可选演进。
+
 #### 购物清单接口（新增）
 ```
 POST /api/v1/shopping-lists
@@ -1439,6 +1466,7 @@ npm run build:weapp
 
 ### 13.4 菜单、购物清单与饮食日记（分阶段对齐产品文档）
 - **M3-A（已实现方向）**：`menus` + `menu_items` CRUD、从菜谱加入、排序、`ifMatchVersion` 与菜单 `version` 字段（与 `001_init_schema.sql` 对齐）。
+- **M3-A（可选演进，未落地）**：菜单**整单保存**接口草案见上文「菜单接口 → 可选演进：整单保存」；与分项接口并行或替代关系 **待评审**；`DEVELOPMENT_PLAN.md` 已单列待办。
 - **M3-B**：`shopping_lists` 从菜单生成、条目勾选与编辑、清单级乐观锁。
 - **M4**：`meal_log_entries` 与 `/api/v1/meal-logs`；新建迁移脚本（如 `002_meal_log_entries.sql`）落库，勿与菜单混表。
 
