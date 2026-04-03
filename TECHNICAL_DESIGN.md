@@ -775,6 +775,24 @@ GET /api/v1/menus/:id/share-stats
 
 详见 `DEVELOPMENT_PLAN.md` 待办「（可选演进）菜单整单保存」、`PRODUCT_DESIGN.md` §2.1.8 可选演进。
 
+##### 多人编辑（分两阶段；产品口径 `PRODUCT_DESIGN.md` §2.1.8，排期 `DEVELOPMENT_PLAN.md`）
+
+**阶段一 — 弱协作（异步合并 / 可选认领行，计划优先实现）**
+
+- **目标**：多名经授权用户通过 **HTTP** 编辑同一份菜单；**无 WebSocket 硬性依赖**；冲突时 **409 `VERSION_CONFLICT`**，body 与现网一致（含 `serverSnapshot` 等），客户端引导重拉。
+- **权限模型（草案）**：新增成员表（示例名 `menu_members`）：`menu_id`、`user_id`、`role`（如 `owner` / `editor` / `viewer`）、`created_at`；仅 `owner`（或扩展规则）可增删成员。所有 `PUT/POST/DELETE` 菜单与菜单项接口在鉴权通过后校验 **当前用户对该 `menu_id` 的写权限**。
+- **乐观锁**：继续沿用 `menus.version` + 请求侧 `ifMatchVersion`；任一写成功路径递增 `version`（与当前 items 写后 bump 行为对齐或统一文档）。
+- **认领行（可选）**：`menu_items` 可增加 `locked_by_user_id`、`lock_expires_at`（UTC）；提供 `POST .../items/:itemId/lock`、`DELETE .../items/:itemId/unlock`（或心跳续租）。编辑份量/删除前策略：**必须持锁** vs **无锁也可写但易 409** 由产品定。
+- **为阶段二预留**：菜单项的增删改排序在 **service 层** 宜保持 **原子操作**（单条或 reorder 一批），避免仅暴露「整 JSON 覆盖」一种写法，以便后续将同类操作映射为 **WebSocket 指令**。
+
+**阶段二 — 实时协同（推迟；阶段一完成后再评审）**
+
+- **目标**：`wx.connectSocket`（或等价）上传 **操作指令**（`type`、`payload`、`client_op_id`）；服务端 **定序**、落库、`version` 递增、向房间內其它客户端 **广播**；断线重连按 `last_seen_version` **补拉**或全量 `GET /menus/:id`。
+- **冲突**：OT、或「服务端裁决 + 广播结果」等 **专项设计**；本阶段不替代阶段一的 REST，可 **并存**（只读客户端仍用 HTTP）。
+- **与阶段一关系**：成员与权限模型 **复用**；阶段一的认领字段在实时方案下可 **弱化或废弃**。
+
+**接口清单（阶段一落地时补充 OpenAPI/上文列表）**：`GET/POST/DELETE /menus/:id/members`（示例）、lock/unlock 路径等以迭代评审为准。
+
 #### 购物清单接口（新增）
 ```
 POST /api/v1/shopping-lists
@@ -1467,6 +1485,7 @@ npm run build:weapp
 ### 13.4 菜单、购物清单与饮食日记（分阶段对齐产品文档）
 - **M3-A（已实现方向）**：`menus` + `menu_items` CRUD、从菜谱加入、排序、`ifMatchVersion` 与菜单 `version` 字段（与 `001_init_schema.sql` 对齐）。
 - **M3-A（可选演进，未落地）**：菜单**整单保存**接口草案见上文「菜单接口 → 可选演进：整单保存」；与分项接口并行或替代关系 **待评审**；`DEVELOPMENT_PLAN.md` 已单列待办。
+- **M3-A 协作（未落地，分两阶段）**：**阶段一**弱协作（成员表、HTTP、409、可选认领）见上文「多人编辑（分两阶段）」与 `DEVELOPMENT_PLAN.md` Iteration 3.5；**阶段二**实时协同（WebSocket）**推迟至阶段一后评审**。
 - **M3-B**：`shopping_lists` 从菜单生成、条目勾选与编辑、清单级乐观锁。
 - **M4**：`meal_log_entries` 与 `/api/v1/meal-logs`；新建迁移脚本（如 `002_meal_log_entries.sql`）落库，勿与菜单混表。
 
@@ -1480,10 +1499,10 @@ npm run build:weapp
   - 购物路线优化（按超市分布）
   - 自动去重和价格比较
 
-- **菜单分享和协作（推迟）**
-  - 多人协作编辑菜单
-  - 菜单版本管理和历史记录
-  - 家庭用户共享菜单
+- **菜单多人编辑（分两阶段；原「协作」条目拆解）**
+  - **阶段一（弱协作，计划优先）**：`menu_members`（或等价）+ 写权限校验；HTTP + `ifMatchVersion` + 409；可选 `menu_items` 认领与 lock API — 详见上文「多人编辑（分两阶段）」；`DEVELOPMENT_PLAN.md` Iteration 3.5。
+  - **阶段二（实时协同，推迟）**：WebSocket 指令流、广播、断线补偿；在阶段一之后评审。
+  - **其它（仍可与上列并行立项）**：菜单版本历史、家庭共享策略、只读分享 — 独立里程碑
 
 - **菜单模板库**
   - 官方菜单模板库
