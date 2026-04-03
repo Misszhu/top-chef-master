@@ -48,7 +48,7 @@
 - [ ] **菜单多人编辑 — 阶段一（弱协作）**：共享成员 + 仍主要依赖 `ifMatchVersion` 与 **409 异步合并**；可选 **菜单项认领**（租约）；**无 WebSocket**。产品口径 `PRODUCT_DESIGN.md` §2.1.8「多人协作」；技术草案 `TECHNICAL_DESIGN.md`「多人编辑（分两阶段）」。
 - [ ] **菜单多人编辑 — 阶段二（实时协同）**：中心化操作流 + **WebSocket**（或等价通道）+ 广播/冲突策略；**在阶段一之后再评审排期**。弱协作阶段后端宜保持 **原子操作语义**，便于演进（见技术文档说明）。
 - [x] **M3-B**：购物清单（从菜单生成、勾选/编辑、跨端同步；弱网离线缓存另迭代）
-- [ ] **M4**：饮食日记（`meal_log_entries` + `/api/v1/meal-logs`，按日查询与 CRUD）
+- [x] **M4**：饮食日记（`meal_log_entries` + `/api/v1/meal-logs`，按日查询与 CRUD；迁移见 `002_meal_log_entries.sql`）
 - [ ] 内容安全/举报/封禁与可观测性
 
 ---
@@ -94,10 +94,10 @@
 
 ### M4：饮食日记
 验收标准（建议）：
-- [ ] 新建迁移：`meal_log_entries`（含 `meal_slot`、`version`、软删）
-- [ ] `GET /meal-logs?from&to` 分页；`POST/PUT/DELETE` 单条 CRUD；`PUT` 带 `ifMatchVersion`
-- [ ] 写入时 `dish_id` 非空则校验 viewer 对菜可见；`title` 快照策略与 `PRODUCT_DESIGN.md` §3 一致
-- [ ] 小程序：日视图 + 编辑页（菜谱选择器或自由文本）
+- [x] 新建迁移：`meal_log_entries`（含 `meal_slot` ENUM、`version`、软删）— `backend/src/database/migrations/002_meal_log_entries.sql`
+- [x] `GET /meal-logs?from&to` 分页；`POST/PUT/DELETE` 单条 CRUD；`PUT` 带 `ifMatchVersion`（冲突 409）
+- [x] 写入时 `dish_id` 非空则校验可见性（与菜谱详情一致）；关联菜谱时 `title` 用菜谱名快照
+- [x] 小程序：日视图 + 编辑页 + 选菜谱页（个人中心「饮食日记」入口）
 
 ### M5：内容安全与治理 + 可观测性
 验收标准（建议）：
@@ -223,13 +223,13 @@
 ## Iteration 5：M4 饮食日记（5-10 天）
 
 ### Backend
-- [ ] migration：`meal_log_entries` + 索引（`user_id, eaten_date`）
-- [ ] `/api/v1/meal-logs` 区间查询与单资源 CRUD；关联 `dish_id` 时复用可见性校验
-- [ ] 软删与列表过滤
+- [x] migration：`meal_log_entries` + 索引（`user_id, eaten_date`，`WHERE deleted_at IS NULL`）
+- [x] `/api/v1/meal-logs` 区间查询与单资源 CRUD；关联 `dish_id` 时复用可见性校验
+- [x] 软删与列表过滤
 
 ### Frontend
-- [ ] 饮食日记日视图、记录编辑页
-- [ ] 409 冲突提示（与菜谱编辑一致的最小处理）
+- [x] 饮食日记日视图、记录编辑页、选菜谱页（分包 `package-meal`）
+- [x] 409 冲突提示（toast + 重拉，与现有最小处理一致）
 
 ---
 

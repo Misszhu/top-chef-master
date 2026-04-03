@@ -239,6 +239,18 @@ export default function Profile() {
               Taro.navigateTo({ url: '/package-shopping/pages/shopping-list/index' })
             }}
           />
+          <AtListItem
+            title='饮食日记'
+            arrow='right'
+            iconInfo={{ size: 20, color: '#ff9900', value: 'calendar' }}
+            onClick={() => {
+              if (!token) {
+                Taro.showToast({ title: '请先登录', icon: 'none' })
+                return
+              }
+              Taro.navigateTo({ url: '/package-meal/pages/meal-day/index' })
+            }}
+          />
         </AtList>
       </View>
 

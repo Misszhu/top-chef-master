@@ -13,6 +13,7 @@ import favoriteRoutes from './routes/favorite.routes';
 import shareRoutes from './routes/share.routes';
 import menuRoutes from './routes/menu.routes';
 import shoppingListRoutes from './routes/shopping-list.routes';
+import mealLogRoutes from './routes/meal-log.routes';
 import { requestId } from './middleware/request-id.middleware';
 import { errorMiddleware } from './middleware/error.middleware';
 import { apiWriteRateLimiter } from './middleware/rate-limit.middleware';
@@ -51,6 +52,7 @@ app.use('/api/v1/favorites', favoriteRoutes);
 app.use('/api/v1/shares', shareRoutes);
 app.use('/api/v1/menus', menuRoutes);
 app.use('/api/v1/shopping-lists', shoppingListRoutes);
+app.use('/api/v1/meal-logs', mealLogRoutes);
 app.use('/api/v1', commentRoutes);
 
 // Basic route

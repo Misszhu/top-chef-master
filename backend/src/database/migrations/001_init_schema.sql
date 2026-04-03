@@ -215,3 +215,29 @@ CREATE TABLE IF NOT EXISTS shopping_list_items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_shopping_list_items_list_id ON shopping_list_items(shopping_list_id);
+
+-- Meal log entries (M4 饮食日记；已建库可单独执行 migrations/002_meal_log_entries.sql)
+DO $$ BEGIN
+  CREATE TYPE meal_slot AS ENUM ('breakfast', 'lunch', 'dinner', 'snack', 'other');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+CREATE TABLE IF NOT EXISTS meal_log_entries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  eaten_date DATE NOT NULL,
+  meal_slot meal_slot,
+  dish_id UUID REFERENCES dishes(id) ON DELETE SET NULL,
+  title VARCHAR(200) NOT NULL,
+  notes TEXT,
+  version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ,
+  CHECK (length(trim(title)) >= 1)
+);
+
+CREATE INDEX IF NOT EXISTS idx_meal_log_entries_user_eaten_date
+  ON meal_log_entries(user_id, eaten_date)
+  WHERE deleted_at IS NULL;

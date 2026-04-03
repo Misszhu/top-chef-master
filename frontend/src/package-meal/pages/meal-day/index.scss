@@ -1,0 +1,106 @@
+.meal-day-page {
+  min-height: 100vh;
+  background-color: var(--tc-bg);
+
+  .date-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20rpx 24rpx;
+    background: var(--tc-card);
+    gap: 16rpx;
+  }
+
+  .date-nav {
+    padding: 12rpx 20rpx;
+    font-size: 26rpx;
+    color: #ff9900;
+    border: 1rpx solid rgba(255, 153, 0, 0.5);
+    border-radius: 12rpx;
+  }
+
+  .date-center {
+    flex: 1;
+    text-align: center;
+  }
+
+  .date-text {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: var(--tc-text);
+  }
+
+  .date-hint {
+    font-size: 22rpx;
+    color: var(--tc-muted);
+    margin-top: 6rpx;
+  }
+
+  .fab-row {
+    padding: 20rpx 30rpx;
+  }
+
+  .entry-card {
+    margin: 16rpx 30rpx;
+    padding: 24rpx;
+    background: var(--tc-card);
+    border-radius: 20rpx;
+    display: flex;
+    gap: 20rpx;
+    box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.04);
+  }
+
+  .entry-thumb {
+    width: 120rpx;
+    height: 120rpx;
+    border-radius: 12rpx;
+    flex-shrink: 0;
+    background: #f0f0f0;
+  }
+
+  .entry-main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .entry-title {
+    font-size: 30rpx;
+    font-weight: 600;
+    color: var(--tc-text);
+  }
+
+  .entry-meta {
+    font-size: 24rpx;
+    color: var(--tc-muted);
+    margin-top: 8rpx;
+  }
+
+  .entry-notes {
+    font-size: 24rpx;
+    color: #666;
+    margin-top: 8rpx;
+  }
+
+  .empty {
+    padding: 80rpx 40rpx;
+    text-align: center;
+  }
+
+  .empty-title {
+    font-size: 28rpx;
+    color: var(--tc-text);
+    display: block;
+    margin-bottom: 12rpx;
+  }
+
+  .empty-sub {
+    font-size: 24rpx;
+    color: var(--tc-muted);
+  }
+
+  .loading-box {
+    padding: 60rpx;
+    text-align: center;
+    color: var(--tc-muted);
+  }
+}

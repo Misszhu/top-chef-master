@@ -27,6 +27,11 @@ export default defineAppConfig({
       name: 'shopping',
       pages: ['pages/shopping-list/index', 'pages/shopping-detail/index'],
     },
+    {
+      root: 'package-meal',
+      name: 'meal',
+      pages: ['pages/meal-day/index', 'pages/meal-edit/index', 'pages/pick-dish/index'],
+    },
   ],
   window: {
     backgroundTextStyle: 'light',
