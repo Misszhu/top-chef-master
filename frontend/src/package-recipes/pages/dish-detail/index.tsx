@@ -20,6 +20,8 @@ import { getApiErrorCode, getApiErrorMessage, isAxiosStatus } from '../../../uti
 import { scheduleNavigateAfterUiSettled } from '../../../utils/schedule-navigate'
 import './index.scss'
 
+const DISH_COMMENT_PAGE_SIZE = 15
+
 function formatAvgRating(v: number | string | undefined | null): string {
   if (v === undefined || v === null) return '0'
   const n = typeof v === 'string' ? parseFloat(v) : v
@@ -64,6 +66,15 @@ export default function DishDetail() {
 
   const [comments, setComments] = useState<Comment[]>([])
   const [commentsLoading, setCommentsLoading] = useState(false)
+  const [commentsLoadingMore, setCommentsLoadingMore] = useState(false)
+  const [commentSort, setCommentSort] = useState<'latest' | 'popular'>('latest')
+  const [commentsHasMore, setCommentsHasMore] = useState(false)
+
+  const commentsRef = useRef<Comment[]>([])
+  const commentPageRef = useRef(0)
+  const commentsHasMoreRef = useRef(false)
+  const commentsAppendingRef = useRef(false)
+  commentsHasMoreRef.current = commentsHasMore
   const [likeCount, setLikeCount] = useState(0)
   const [liked, setLiked] = useState(false)
   const [likeBusy, setLikeBusy] = useState(false)
@@ -88,22 +99,56 @@ export default function DishDetail() {
     setShareCount(Number(data.share_count) || 0)
   }, [id, dispatch])
 
-  const loadComments = useCallback(async () => {
-    if (!id) return
-    setCommentsLoading(true)
-    try {
-      const { data } = await getCommentsByDishId(id as string, 1, 50)
-      setComments(data)
-    } catch (err: any) {
-      if (isAxiosStatus(err, 404)) {
-        setComments([])
+  const loadComments = useCallback(
+    async (mode: 'reset' | 'append') => {
+      if (!id) return
+      if (mode === 'append') {
+        if (!commentsHasMoreRef.current || commentsAppendingRef.current) return
+        commentsAppendingRef.current = true
+        setCommentsLoadingMore(true)
       } else {
-        console.error(err)
+        setCommentsLoading(true)
+        commentsRef.current = []
+        commentPageRef.current = 0
       }
-    } finally {
-      setCommentsLoading(false)
-    }
-  }, [id])
+
+      const page = mode === 'reset' ? 1 : commentPageRef.current + 1
+
+      try {
+        const { data, pagination } = await getCommentsByDishId(
+          id as string,
+          page,
+          DISH_COMMENT_PAGE_SIZE,
+          commentSort
+        )
+        const next =
+          mode === 'reset' ? data : [...commentsRef.current, ...data]
+        commentsRef.current = next
+        commentPageRef.current = page
+        setComments(next)
+        const more = next.length < pagination.total && data.length > 0
+        setCommentsHasMore(more)
+        commentsHasMoreRef.current = more
+      } catch (err: any) {
+        if (isAxiosStatus(err, 404)) {
+          commentsRef.current = []
+          setComments([])
+          setCommentsHasMore(false)
+          commentsHasMoreRef.current = false
+        } else {
+          console.error(err)
+        }
+      } finally {
+        if (mode === 'append') {
+          commentsAppendingRef.current = false
+          setCommentsLoadingMore(false)
+        } else {
+          setCommentsLoading(false)
+        }
+      }
+    },
+    [id, commentSort]
+  )
 
   // 栈内返回（如编辑页 navigateBack）时组件常仍挂载，仅依赖 [id] 的 effect 不会重跑，需在每次页面显示时拉最新数据
   useDidShow(() => {
@@ -172,10 +217,9 @@ export default function DishDetail() {
   }, [id, dispatch])
 
   useEffect(() => {
-    if (currentDish && currentDish.id) {
-      loadComments()
-    }
-  }, [currentDish && currentDish.id, loadComments])
+    if (!currentDish?.id) return
+    void loadComments('reset')
+  }, [currentDish?.id, commentSort, loadComments])
 
   const myComment = comments.find((c) => userInfo && userInfo.id && c.user_id === userInfo.id)
 
@@ -279,7 +323,7 @@ export default function DishDetail() {
         await upsertComment(id as string, { content: text, rating: commentRating })
         Taro.showToast({ title: '已发布', icon: 'success' })
       }
-      await loadComments()
+      await loadComments('reset')
       await reloadDish()
     } catch (err: any) {
       Taro.showToast({ title: getApiErrorMessage(err, '提交失败'), icon: 'none' })
@@ -298,7 +342,7 @@ export default function DishDetail() {
         try {
           await deleteComment(myComment.id)
           Taro.showToast({ title: '已删除', icon: 'success' })
-          await loadComments()
+          await loadComments('reset')
           await reloadDish()
         } catch (err: any) {
           Taro.showToast({ title: getApiErrorMessage(err, '删除失败'), icon: 'none' })
@@ -460,6 +504,28 @@ export default function DishDetail() {
 
         <AtDivider content='评论' fontColor='#ff9900' lineColor='#ff9900' />
         <View className='comments-section'>
+          <View className='comment-sort-row'>
+            <Text className='comment-sort-label'>排序</Text>
+            <AtTag
+              size='small'
+              circle
+              type={commentSort === 'latest' ? 'primary' : undefined}
+              active={commentSort === 'latest'}
+              onClick={() => setCommentSort('latest')}
+            >
+              最新
+            </AtTag>
+            <AtTag
+              size='small'
+              circle
+              className='comment-sort-tag'
+              type={commentSort === 'popular' ? 'primary' : undefined}
+              active={commentSort === 'popular'}
+              onClick={() => setCommentSort('popular')}
+            >
+              高分优先
+            </AtTag>
+          </View>
           {!token && <Text className='hint-muted'>登录后可点赞、评论</Text>}
           {token && !currentDish.comments_enabled && (
             <Text className='hint-muted'>作者已关闭评论</Text>
@@ -511,6 +577,17 @@ export default function DishDetail() {
                 </Text>
               </View>
             ))
+          )}
+          {commentsHasMore && !commentsLoading && (
+            <View className='comment-load-more'>
+              <AtButton
+                size='small'
+                loading={commentsLoadingMore}
+                onClick={() => void loadComments('append')}
+              >
+                加载更多
+              </AtButton>
+            </View>
           )}
         </View>
 

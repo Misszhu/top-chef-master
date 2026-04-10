@@ -9,10 +9,11 @@ export interface CommentsPage {
 export const getCommentsByDishId = async (
   dishId: string,
   page = 1,
-  limit = 20
+  limit = 20,
+  sort: 'latest' | 'popular' = 'latest'
 ): Promise<CommentsPage> => {
   const response = await request.get(`/dishes/${dishId}/comments`, {
-    params: { page, limit },
+    params: { page, limit, sort },
   })
   const meta = response.data.meta || {}
   const pagination = meta.pagination || { page: 1, limit: 20, total: 0 }

@@ -69,4 +69,6 @@ export interface DishQueryFilters {
   search?: string;
   user_id?: string;
   visibility?: 'private' | 'followers' | 'public';
+  /** latest | cooking_time_asc | cooking_time_desc | popular */
+  sort?: string;
 }

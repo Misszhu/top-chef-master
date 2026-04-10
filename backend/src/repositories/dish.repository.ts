@@ -1,5 +1,6 @@
 import pool from '../config/database';
 import { Dish, DishCreateDTO, DishUpdateDTO, DishQueryFilters, Ingredient, CookingStep } from '../models/dish.model';
+import { dishListOrderByClause, normalizeDishListSort } from '../utils/dish-list-sort';
 
 export class DishRepository {
   private applyVisibilityFilter(conditions: string[], values: any[], viewerId: string | null, paramIndex: number) {
@@ -69,12 +70,15 @@ export class DishRepository {
       ${whereClause}
     `;
 
+    const sortKey = normalizeDishListSort(filters.sort);
+    const orderBy = dishListOrderByClause(sortKey);
+
     const dataQuery = `
       SELECT d.*, u.nickname as user_nickname, u.avatar_url as user_avatar_url
       FROM dishes d
       LEFT JOIN users u ON d.user_id = u.id
       ${whereClause}
-      ORDER BY d.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT $${paramIndex++} OFFSET $${paramIndex++}
     `;
 

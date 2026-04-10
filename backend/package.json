@@ -11,6 +11,7 @@
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "rimraf dist && tsc",
     "seed": "ts-node src/database/seed.ts",
+    "seed:bulk-dishes": "ts-node src/database/seed-bulk-dishes.ts",
     "db:migrate:meal-logs": "ts-node src/database/migrate-meal-logs.ts",
     "test": "jest"
   },

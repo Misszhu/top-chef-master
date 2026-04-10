@@ -69,4 +69,11 @@ export interface DishQueryFilters {
   user_id?: string;
   limit?: number;
   page?: number;
+  /** latest | cooking_time_asc | cooking_time_desc | popular */
+  sort?: string;
+}
+
+export interface DishesPage {
+  data: Dish[];
+  pagination: { page: number; limit: number; total: number };
 }

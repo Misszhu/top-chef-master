@@ -1,8 +1,21 @@
 import pool from '../config/database';
 import type { Comment, CommentCreateDTO, CommentUpdateDTO } from '../models/comment.model';
+import {
+  commentListOrderByClause,
+  normalizeCommentListSort,
+  type CommentListSort,
+} from '../utils/comment-list-sort';
 
 export class CommentRepository {
-  async findByDishIdWithTotal(dishId: string, limit: number, offset: number) {
+  async findByDishIdWithTotal(
+    dishId: string,
+    limit: number,
+    offset: number,
+    sortRaw?: string
+  ) {
+    const sortKey: CommentListSort = normalizeCommentListSort(sortRaw);
+    const orderBy = commentListOrderByClause(sortKey);
+
     const countQuery = `
       SELECT COUNT(*)::int AS total
       FROM comments c
@@ -14,7 +27,7 @@ export class CommentRepository {
       FROM comments c
       LEFT JOIN users u ON c.user_id = u.id
       WHERE c.dish_id = $1 AND c.deleted_at IS NULL
-      ORDER BY c.created_at DESC
+      ORDER BY ${orderBy}
       LIMIT $2 OFFSET $3
     `;
 

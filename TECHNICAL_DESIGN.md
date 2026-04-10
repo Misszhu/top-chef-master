@@ -16,6 +16,14 @@
 - **云端为主**：业务数据（菜谱、评论、收藏、关注、菜单、购物清单、计数）以服务端为权威来源；客户端只做缓存、离线队列与弱网降级。
 - **本地存储定位**：用于缓存（列表/详情/用户信息）、离线草稿与同步队列，不再承担“长期主存储”职责。
 
+### 1.1.2 微信小程序 · 发现首页列表（虚拟滚动）
+- **交互**：首屏仅保留**搜索框** + 双列菜谱卡片流；**不渲染**难度 chips、标签输入、排序 Picker 等筛选条（降低首屏突兀感；筛选能力仍由 `GET /api/v1/dishes` 的 query 承载，可供其它端或后续入口使用）。
+- **默认请求**：`sort=latest`，按需带 `search`；`page` / `limit` 分页，触底请求下一页追加至 Redux 全量列表。
+- **虚拟化实现**：`pages/index/VirtualDishGrid.tsx` 将双列网格按**行**（每行 2 个 `dish`）估算行高（固定 **392rpx** 与样式对齐），根据 `ScrollView` 的 `scrollTop` 与可视区高度计算 `startRow`/`endRow`，仅挂载可视行 ± **5** 行缓冲；上下用占位 `View` 撑开总高度，使滚动条与「全量列表」一致。
+- **触底加载**：优先用 `onScroll` 中 `scrollTop + clientHeight` 逼近 `scrollHeight` 触发；并保留 `onScrollToLower` 作为基础库未返回 `scrollHeight` 时的兜底；短冷却避免重复请求。
+- **列表重置**：搜索提交或清空导致列表重拉时递增 `listEpoch` 并重挂 `ScrollView`，将滚动位置回到顶部（首屏首次成功加载不 bump，避免无意义重挂）。
+- **布局约束（tabBar 页必做）**：发现页根容器用 `page { height: 100% }` + 列方向 flex，且 **`scroll-view` 所在 flex 子项必须 `min-height: 0`**（或等价约束）。否则子项会被长内容撑开，`scroll-view` 无法产生内部滚动，`scrolltolower` / 触底分页不触发。历史上若用 `100vh` 且未约束 flex 最小高度，易出现「整页跟着滚、列表只显示首屏数据」的现象。
+
 ### 1.2 架构图
 ```
 ┌─────────────────────────────────────────────┐
@@ -605,8 +613,9 @@ POST /api/v1/auth/refresh
 #### 菜肴接口
 ```
 GET /api/v1/dishes
-  参数：?page=1&limit=20&sort=latest&tag=快手菜&difficulty=easy
-  响应：{ data: [...], total: 100, page: 1, limit: 20 }
+  参数：?page=1&limit=20&sort=latest&tag=快手菜&difficulty=easy&search=关键词
+  响应：{ data: [...], total: 100, page: 1, limit: 20 }（实际包在统一信封 `meta.pagination` 中）
+  > **小程序发现首页当前客户端**：主要传 `page` / `limit` / `search?` / `sort=latest`；`tag` / `difficulty` / 其它 `sort` 枚举仍合法，供其它页面或后续筛选入口使用。
 
 GET /api/v1/dishes/:id
   响应：{ id, name, description, ingredients, steps, comments, ... }

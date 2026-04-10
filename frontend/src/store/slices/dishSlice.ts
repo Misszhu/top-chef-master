@@ -22,6 +22,9 @@ const dishSlice = createSlice({
     setDishes: (state, action: PayloadAction<Dish[]>) => {
       state.dishes = action.payload;
     },
+    appendDishes: (state, action: PayloadAction<Dish[]>) => {
+      state.dishes.push(...action.payload);
+    },
     setCurrentDish: (state, action: PayloadAction<Dish | null>) => {
       state.currentDish = action.payload;
     },
@@ -34,5 +37,5 @@ const dishSlice = createSlice({
   },
 });
 
-export const { setDishes, setCurrentDish, setLoading, setError } = dishSlice.actions;
+export const { setDishes, appendDishes, setCurrentDish, setLoading, setError } = dishSlice.actions;
 export default dishSlice.reducer;

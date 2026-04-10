@@ -12,21 +12,37 @@ function pickString(value: unknown): string | undefined {
 export class CommentController {
   async listByDish(req: Request, res: Response) {
     const { id: dishIdParam } = req.params;
-    const { limit, page } = req.query;
+    const { limit, page, sort } = req.query;
 
     const dishId = Array.isArray(dishIdParam) ? dishIdParam[0] : dishIdParam;
     if (!dishId) return sendError(res, 400, 'VALIDATION_ERROR', 'dishId 无效');
 
     const limitStr = pickString(limit);
     const pageStr = pickString(page);
+    const sortStr = pickString(sort);
 
-    const limitNum = limitStr ? parseInt(limitStr, 10) : 10;
-    const pageNum = pageStr ? parseInt(pageStr, 10) : 1;
-    const offsetNum = (Math.max(pageNum, 1) - 1) * limitNum;
+    let limitNum = limitStr ? parseInt(limitStr, 10) : 10;
+    if (Number.isNaN(limitNum) || limitNum < 1) {
+      limitNum = 10;
+    }
+    if (limitNum > 50) {
+      limitNum = 50;
+    }
+    let pageNum = pageStr ? parseInt(pageStr, 10) : 1;
+    if (Number.isNaN(pageNum) || pageNum < 1) {
+      pageNum = 1;
+    }
+    const offsetNum = (pageNum - 1) * limitNum;
 
     try {
       const viewerId = req.user?.userId ?? null;
-      const { data, total } = await commentService.listByDishId(dishId, limitNum, offsetNum, viewerId);
+      const { data, total } = await commentService.listByDishId(
+        dishId,
+        limitNum,
+        offsetNum,
+        viewerId,
+        sortStr
+      );
       return sendPagination(res, data, { page: pageNum, limit: limitNum, total });
     } catch (e: any) {
       if (e instanceof ApiError) return sendError(res, e.status, e.code, e.message, e.details);

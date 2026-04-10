@@ -4,12 +4,18 @@ import { dishRepository } from '../repositories/dish.repository';
 import { ApiError } from '../utils/api-error';
 
 export class CommentService {
-  async listByDishId(dishId: string, limit: number, offset: number, viewerId: string | null) {
+  async listByDishId(
+    dishId: string,
+    limit: number,
+    offset: number,
+    viewerId: string | null,
+    sort?: string
+  ) {
     const dish = await dishRepository.findVisibleById(dishId, viewerId);
     if (!dish) {
       throw new ApiError(404, 'NOT_FOUND', '菜谱不存在或无权限访问');
     }
-    return commentRepository.findByDishIdWithTotal(dishId, limit, offset);
+    return commentRepository.findByDishIdWithTotal(dishId, limit, offset, sort);
   }
 
   async upsertForDish(dishId: string, userId: string, dto: CommentCreateDTO) {

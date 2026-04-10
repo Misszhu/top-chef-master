@@ -13,26 +13,37 @@ function pickString(value: unknown): string | undefined {
 
 export class DishController {
   async getAllDishes(req: Request, res: Response) {
-    const { difficulty, tag, search, user_id, limit, page } = req.query;
+    const { difficulty, tag, search, user_id, limit, page, sort } = req.query;
 
     const difficultyStr = pickString(difficulty);
     const tagStr = pickString(tag);
     const searchStr = pickString(search);
     const userIdStr = pickString(user_id);
+    const sortStr = pickString(sort);
 
     const filters: DishQueryFilters = {
       difficulty: difficultyStr,
       tag: tagStr,
       search: searchStr,
       user_id: userIdStr,
+      sort: sortStr,
     };
 
     const limitStr = pickString(limit);
     const pageStr = pickString(page);
 
-    const limitNum = limitStr ? parseInt(limitStr, 10) : 20;
-    const pageNum = pageStr ? parseInt(pageStr, 10) : 1;
-    const offsetNum = (Math.max(pageNum, 1) - 1) * limitNum;
+    let limitNum = limitStr ? parseInt(limitStr, 10) : 20;
+    if (Number.isNaN(limitNum) || limitNum < 1) {
+      limitNum = 20;
+    }
+    if (limitNum > 100) {
+      limitNum = 100;
+    }
+    let pageNum = pageStr ? parseInt(pageStr, 10) : 1;
+    if (Number.isNaN(pageNum) || pageNum < 1) {
+      pageNum = 1;
+    }
+    const offsetNum = (pageNum - 1) * limitNum;
 
     try {
       const viewerId = req.user?.userId ?? null;

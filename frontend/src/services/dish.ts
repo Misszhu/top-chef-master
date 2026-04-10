@@ -1,11 +1,16 @@
 import Taro from '@tarojs/taro';
 import request from '../utils/request';
 import { getApiOrigin } from '../utils/api-origin';
-import { Dish, DishCreateDTO, DishQueryFilters } from '../types/dish';
+import { Dish, DishCreateDTO, DishQueryFilters, DishesPage } from '../types/dish';
 
-export const getDishes = async (filters: DishQueryFilters = {}): Promise<Dish[]> => {
+export const getDishes = async (filters: DishQueryFilters = {}): Promise<DishesPage> => {
   const response = await request.get('/dishes', { params: filters });
-  return response.data.data;
+  const meta = response.data.meta ?? {};
+  const pagination = meta.pagination ?? { page: 1, limit: 20, total: 0 };
+  return {
+    data: Array.isArray(response.data.data) ? response.data.data : [],
+    pagination,
+  };
 };
 
 export const getDishById = async (id: string): Promise<Dish> => {

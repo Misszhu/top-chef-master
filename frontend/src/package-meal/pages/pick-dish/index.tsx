@@ -20,8 +20,8 @@ export default function PickDishForMealLogPage() {
     setLoading(true)
     try {
       const q = search?.trim()
-      const data = await getDishes(q ? { search: q } : {})
-      setDishes(Array.isArray(data) ? data : [])
+      const { data } = await getDishes(q ? { search: q, limit: 100, page: 1 } : { limit: 100, page: 1 })
+      setDishes(data)
     } catch (e) {
       console.error(e)
       setDishes([])

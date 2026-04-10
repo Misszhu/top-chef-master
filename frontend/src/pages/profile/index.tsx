@@ -30,8 +30,8 @@ export default function Profile() {
     }
     setMyDishesLoading(true)
     try {
-      const list = await getDishes({ user_id: uid, limit: 50, page: 1 })
-      setMyDishes(Array.isArray(list) ? list : [])
+      const { data } = await getDishes({ user_id: uid, limit: 50, page: 1 })
+      setMyDishes(data)
     } catch (e) {
       console.error('fetch my dishes:', e)
       setMyDishes([])
